@@ -30,17 +30,63 @@
             <input id="login-password" class="input" type="password" placeholder="Enter password" />
           </div>
 
-          <button id="login-btn" class="btn btn-primary btn-full">Login</button>
-          <p id="login-error" class="form-error hidden">Invalid employee ID or password.</p>
+          <button id="login-btn" class="btn btn-primary btn-full">เข้าสู่ระบบ</button>
+          <p id="login-error" class="form-error hidden">รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง</p>
 
-          <div class="login-help-row">
-            <button class="link-btn" type="button">Contact Admin</button>
+          <div class="login-help-row login-help-row--split">
+            <button id="open-register-btn" class="link-btn" type="button">สมัครสมาชิกพนักงาน</button>
+            <button class="link-btn" type="button">ติดต่อแอดมิน</button>
+          </div>
+
+          <div id="register-panel" class="register-panel hidden">
+            <div class="register-panel__head">
+              <h3>สมัครสมาชิก</h3>
+              <p>ใช้สำหรับบัญชีพนักงานทั่วไป ระบบจะกำหนดสิทธิ์ตามแผนกให้อัตโนมัติ</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="register-name">ชื่อพนักงาน</label>
+              <input id="register-name" class="input" type="text" placeholder="กรอกชื่อพนักงาน" />
+            </div>
+
+            <div class="field">
+              <label class="label" for="register-employee-id">รหัสพนักงาน</label>
+              <input id="register-employee-id" class="input" type="text" placeholder="กรอกรหัสพนักงาน" />
+            </div>
+
+            <div class="field">
+              <label class="label" for="register-department">แผนก</label>
+              <select id="register-department" class="select">
+                <option value="FO">FO / Front Office</option>
+                <option value="HK">HK / Housekeeping</option>
+                <option value="Engineering">ENG / Engineering</option>
+                <option value="FB">FB / Food & Beverage</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="label" for="register-password">รหัสผ่าน</label>
+              <input id="register-password" class="input" type="password" placeholder="ตั้งรหัสผ่าน" />
+            </div>
+
+            <div class="field">
+              <label class="label" for="register-password-confirm">ยืนยันรหัสผ่าน</label>
+              <input id="register-password-confirm" class="input" type="password" placeholder="กรอกรหัสผ่านอีกครั้ง" />
+            </div>
+
+            <p id="register-error" class="form-error hidden">ไม่สามารถสมัครสมาชิกได้</p>
+            <p id="register-success" class="form-success hidden">สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ</p>
+
+            <div class="register-panel__actions">
+              <button id="register-submit-btn" class="btn btn-primary" type="button">สมัครสมาชิก</button>
+              <button id="register-cancel-btn" class="btn btn-secondary" type="button">ยกเลิก</button>
+            </div>
           </div>
         </section>
 
         <div class="login-footer">
           <span id="firebase-status" class="login-status" data-tone="info">กำลังตรวจสอบ Firebase...</span>
-          <span>v1.14.0 Firebase Core</span>
+          <span>v1.14.1 Firebase Register</span>
           <span>GitHub Pages Ready</span>
         </div>
 

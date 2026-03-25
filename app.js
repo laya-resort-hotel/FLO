@@ -364,6 +364,17 @@ const els = {
   loginError: document.getElementById('login-error'),
   loginEmployeeId: document.getElementById('login-employee-id'),
   loginPassword: document.getElementById('login-password'),
+  openRegisterBtn: document.getElementById('open-register-btn'),
+  registerPanel: document.getElementById('register-panel'),
+  registerName: document.getElementById('register-name'),
+  registerEmployeeId: document.getElementById('register-employee-id'),
+  registerDepartment: document.getElementById('register-department'),
+  registerPassword: document.getElementById('register-password'),
+  registerPasswordConfirm: document.getElementById('register-password-confirm'),
+  registerError: document.getElementById('register-error'),
+  registerSuccess: document.getElementById('register-success'),
+  registerSubmitBtn: document.getElementById('register-submit-btn'),
+  registerCancelBtn: document.getElementById('register-cancel-btn'),
   logoutBtn: document.getElementById('logout-btn'),
   backBtn: document.getElementById('back-btn'),
   navHome: document.getElementById('nav-home'),
@@ -546,7 +557,8 @@ const state = {
   modFilter: 'all',
   modSearch: '',
   modDraftMedia: [],
-  detailDraftMedia: []
+  detailDraftMedia: [],
+  pendingRegistrationProfile: null
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -567,6 +579,12 @@ function bindEvents() {
   els.loginBtn.addEventListener('click', onLogin);
   els.loginPassword.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') onLogin();
+  });
+  if (els.openRegisterBtn) els.openRegisterBtn.addEventListener('click', () => toggleRegisterPanel(true));
+  if (els.registerCancelBtn) els.registerCancelBtn.addEventListener('click', () => toggleRegisterPanel(false));
+  if (els.registerSubmitBtn) els.registerSubmitBtn.addEventListener('click', onRegister);
+  if (els.registerPasswordConfirm) els.registerPasswordConfirm.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') onRegister();
   });
   els.logoutBtn.addEventListener('click', logout);
   els.backBtn.addEventListener('click', onBack);
@@ -709,6 +727,14 @@ async function handleFirebaseAuthState(authUser) {
   let profileSnap = await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).get();
 
   if (!profileSnap.exists) {
+    const pendingProfile = state.pendingRegistrationProfile;
+    if (pendingProfile && pendingProfile.employeeId === employeeId) {
+      await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).set(stripUserForFirestore(pendingProfile), { merge: true });
+      profileSnap = await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).get();
+    }
+  }
+
+  if (!profileSnap.exists) {
     const fallbackUser = defaultUsers.find((user) => user.employeeId === employeeId);
     if (fallbackUser) {
       await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).set(stripUserForFirestore(fallbackUser));
@@ -725,6 +751,7 @@ async function handleFirebaseAuthState(authUser) {
   }
 
   state.currentUser = normalizeFirebaseUser(profileSnap.data());
+  state.pendingRegistrationProfile = null;
   localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(state.currentUser));
   await bootstrapFirebaseDemoDataIfNeeded();
   await loadFirebaseCollections();
@@ -956,10 +983,166 @@ function getFriendlyAuthError(error) {
     'auth/invalid-email': 'รูปแบบ Employee ID สำหรับ Firebase ไม่ถูกต้อง',
     'auth/user-not-found': 'ไม่พบบัญชีผู้ใช้นี้ใน Firebase Authentication',
     'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
+    'auth/email-already-in-use': 'รหัสพนักงานนี้ถูกสมัครไว้แล้ว',
+    'auth/weak-password': 'รหัสผ่านควรมีอย่างน้อย 6 ตัวอักษร',
     'auth/too-many-requests': 'มีการลองเข้าสู่ระบบหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง',
     'auth/network-request-failed': 'เครือข่ายมีปัญหา กรุณาตรวจสอบอินเทอร์เน็ต'
   };
   return map[code] || error?.message || 'เข้าสู่ระบบไม่สำเร็จ';
+}
+
+function getStaffRoleForDepartment(department) {
+  return {
+    FO: 'FO Staff',
+    HK: 'HK Staff',
+    Engineering: 'ENG Staff',
+    FB: 'FB Staff'
+  }[department] || 'FO Staff';
+}
+
+function canSelfRegisterRole(role) {
+  return ['FO Staff', 'HK Staff', 'ENG Staff', 'FB Staff'].includes(role);
+}
+
+function resetRegisterForm() {
+  if (els.registerName) els.registerName.value = '';
+  if (els.registerEmployeeId) els.registerEmployeeId.value = '';
+  if (els.registerDepartment) els.registerDepartment.value = 'FO';
+  if (els.registerPassword) els.registerPassword.value = '';
+  if (els.registerPasswordConfirm) els.registerPasswordConfirm.value = '';
+  if (els.registerError) {
+    els.registerError.textContent = 'ไม่สามารถสมัครสมาชิกได้';
+    els.registerError.classList.add('hidden');
+  }
+  if (els.registerSuccess) {
+    els.registerSuccess.textContent = 'สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ';
+    els.registerSuccess.classList.add('hidden');
+  }
+}
+
+function toggleRegisterPanel(forceOpen) {
+  if (!els.registerPanel) return;
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : els.registerPanel.classList.contains('hidden');
+  els.registerPanel.classList.toggle('hidden', !shouldOpen);
+  if (!shouldOpen) {
+    resetRegisterForm();
+    return;
+  }
+  if (els.registerName) els.registerName.focus();
+}
+
+function validateRegisterInput(name, employeeId, department, password, confirmPassword) {
+  if (!name || !employeeId || !department || !password || !confirmPassword) return 'กรุณากรอกข้อมูลสมัครสมาชิกให้ครบ';
+  if (password.length < 6) return 'รหัสผ่านควรมีอย่างน้อย 6 ตัวอักษร';
+  if (password !== confirmPassword) return 'ยืนยันรหัสผ่านไม่ตรงกัน';
+  if (!/^\d{4,}$/.test(employeeId)) return 'รหัสพนักงานควรเป็นตัวเลขอย่างน้อย 4 หลัก';
+  return '';
+}
+
+async function onRegister() {
+  const name = (els.registerName?.value || '').trim();
+  const employeeId = (els.registerEmployeeId?.value || '').trim();
+  const department = els.registerDepartment?.value || 'FO';
+  const password = (els.registerPassword?.value || '').trim();
+  const confirmPassword = (els.registerPasswordConfirm?.value || '').trim();
+
+  if (els.registerError) els.registerError.classList.add('hidden');
+  if (els.registerSuccess) els.registerSuccess.classList.add('hidden');
+
+  const validationError = validateRegisterInput(name, employeeId, department, password, confirmPassword);
+  if (validationError) {
+    if (els.registerError) {
+      els.registerError.textContent = validationError;
+      els.registerError.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (state.backendMode === 'firebase' && state.firebaseAuth && state.firebaseDb) {
+    try {
+      if (els.registerSubmitBtn) els.registerSubmitBtn.disabled = true;
+      const email = employeeIdToEmail(employeeId);
+      state.pendingRegistrationProfile = {
+        employeeId,
+        name,
+        role: getStaffRoleForDepartment(department),
+        department,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      const credential = await state.firebaseAuth.createUserWithEmailAndPassword(email, password);
+      const docRef = state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId);
+      const existingDoc = await docRef.get();
+      const existing = existingDoc.exists ? normalizeFirebaseUser({ ...existingDoc.data(), employeeId }) : null;
+      if (existing && existing.role && !canSelfRegisterRole(existing.role)) {
+        state.pendingRegistrationProfile = null;
+        await state.firebaseAuth.signOut();
+        if (els.registerError) {
+          els.registerError.textContent = 'บัญชีระดับหัวหน้างานหรือผู้จัดการ กรุณาให้แอดมินสร้างในระบบ';
+          els.registerError.classList.remove('hidden');
+        }
+        return;
+      }
+      const profile = {
+        employeeId,
+        name: existing?.name || name,
+        role: existing?.role || getStaffRoleForDepartment(existing?.department || department),
+        department: existing?.department || department,
+        active: true,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await docRef.set(stripUserForFirestore(profile), { merge: true });
+      if (els.registerSuccess) {
+        els.registerSuccess.textContent = 'สมัครสมาชิกสำเร็จ ระบบกำลังเข้าสู่ระบบให้';
+        els.registerSuccess.classList.remove('hidden');
+      }
+      if (els.loginEmployeeId) els.loginEmployeeId.value = employeeId;
+      if (els.loginPassword) els.loginPassword.value = password;
+      return;
+    } catch (error) {
+      console.error(error);
+      state.pendingRegistrationProfile = null;
+      if (els.registerError) {
+        els.registerError.textContent = getFriendlyAuthError(error) || 'สมัครสมาชิกไม่สำเร็จ';
+        els.registerError.classList.remove('hidden');
+      }
+    } finally {
+      if (els.registerSubmitBtn) els.registerSubmitBtn.disabled = false;
+    }
+    return;
+  }
+
+  const existingUser = users.find((user) => user.employeeId === employeeId);
+  if (existingUser) {
+    if (els.registerError) {
+      els.registerError.textContent = 'รหัสพนักงานนี้มีอยู่แล้ว';
+      els.registerError.classList.remove('hidden');
+    }
+    return;
+  }
+
+  users.push({
+    employeeId,
+    password,
+    name,
+    role: getStaffRoleForDepartment(department),
+    department,
+    active: true
+  });
+  saveUsers(users);
+  if (els.registerSuccess) {
+    els.registerSuccess.textContent = 'สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ';
+    els.registerSuccess.classList.remove('hidden');
+  }
+  if (els.loginEmployeeId) els.loginEmployeeId.value = employeeId;
+  if (els.loginPassword) els.loginPassword.value = password;
+  resetRegisterForm();
+  if (els.registerSuccess) {
+    els.registerSuccess.textContent = 'สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ';
+    els.registerSuccess.classList.remove('hidden');
+  }
 }
 
 function initializeTasks() {
@@ -1049,7 +1232,7 @@ async function onLogin() {
 
   const matchedUser = users.find((u) => u.employeeId === employeeId && u.password === password);
   if (!matchedUser) {
-    els.loginError.textContent = 'Invalid employee ID or password.';
+    els.loginError.textContent = 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง';
     els.loginError.classList.remove('hidden');
     return;
   }
@@ -1062,6 +1245,7 @@ async function onLogin() {
 
 async function logout() {
   state.currentUser = null;
+  state.pendingRegistrationProfile = null;
   localStorage.removeItem(STORAGE_KEYS.currentUser);
   teardownFirebaseSubscriptions();
   if (state.backendMode === 'firebase' && state.firebaseAuth) {
@@ -1074,11 +1258,13 @@ async function logout() {
   screens.app.classList.remove('screen--active');
   screens.login.classList.add('screen--active');
   els.loginPassword.value = '';
+  toggleRegisterPanel(false);
 }
 
 function showApp() {
   screens.login.classList.remove('screen--active');
   screens.app.classList.add('screen--active');
+  toggleRegisterPanel(false);
   configureNavigation();
   showPage(getDefaultLandingPage());
   renderApp();
