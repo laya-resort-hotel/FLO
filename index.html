@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laya Service Hub v1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <section id="screen-login" class="screen screen--active">
+      <main class="login-page">
+        <div class="login-brand">
+          <div class="login-logo">LSH</div>
+          <h1>Laya Service Hub v1</h1>
+          <p>Hotel Operations Task Management</p>
+        </div>
+
+        <section class="card login-card">
+          <div class="field">
+            <label class="label" for="login-employee-id">Employee ID</label>
+            <input id="login-employee-id" class="input" type="text" placeholder="Enter employee ID" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="login-password">Password</label>
+            <input id="login-password" class="input" type="password" placeholder="Enter password" />
+          </div>
+
+          <button id="login-btn" class="btn btn-primary btn-full">Login</button>
+          <p id="login-error" class="form-error hidden">Invalid employee ID or password.</p>
+
+          <div class="login-help-row">
+            <button class="link-btn" type="button">Contact Admin</button>
+          </div>
+        </section>
+
+        <div class="login-footer">
+          <span>v1.6.0 Prototype</span>
+          <span>Local Demo</span>
+        </div>
+
+        <section class="card demo-accounts">
+          <h2>Demo Accounts</h2>
+          <ul>
+            <li><strong>FO Manager:</strong> 11025 / 1234</li>
+            <li><strong>FO Staff:</strong> 12001 / 1234</li>
+            <li><strong>HK Staff:</strong> 22018 / 1234</li>
+            <li><strong>ENG Staff:</strong> 33007 / 1234</li>
+            <li><strong>FB Staff:</strong> 44005 / 1234</li>
+          </ul>
+        </section>
+      </main>
+    </section>
+
+    <section id="screen-app" class="screen">
+      <header class="topbar">
+        <div class="topbar__main">
+          <button id="back-btn" class="icon-btn hidden" type="button" aria-label="Go back">←</button>
+          <div>
+            <h1 id="topbar-title" class="topbar__title">Good Morning</h1>
+            <p id="topbar-subtitle" class="topbar__subtitle">Department</p>
+          </div>
+        </div>
+        <div class="topbar__actions">
+          <button id="logout-btn" class="icon-btn" type="button" aria-label="Logout">⎋</button>
+        </div>
+      </header>
+
+      <main class="page">
+        <section id="page-home" class="page-view page-view--active">
+          <section class="summary-grid">
+            <article class="card stat-card">
+              <span class="stat-card__label">New</span>
+              <strong id="stat-new" class="stat-card__value">0</strong>
+            </article>
+            <article class="card stat-card">
+              <span class="stat-card__label">In Progress</span>
+              <strong id="stat-progress" class="stat-card__value">0</strong>
+            </article>
+            <article class="card stat-card">
+              <span class="stat-card__label">Done Today</span>
+              <strong id="stat-done" class="stat-card__value">0</strong>
+            </article>
+            <article class="card stat-card">
+              <span class="stat-card__label">Urgent</span>
+              <strong id="stat-urgent" class="stat-card__value">0</strong>
+            </article>
+          </section>
+
+          <section class="actions-stack">
+            <button id="home-create-btn" class="btn btn-primary btn-full" type="button">+ Create Task</button>
+            <button id="home-view-tasks-btn" class="btn btn-secondary btn-full" type="button">View My Tasks</button>
+          </section>
+
+          <section class="section">
+            <div class="section__header">
+              <h2 class="section__title">Need Attention</h2>
+              <span class="section__hint">Top priority tasks</span>
+            </div>
+            <div id="home-task-list" class="task-list"></div>
+          </section>
+
+          <section class="section">
+            <div class="section__header">
+              <h2 class="section__title">Recent Activity</h2>
+            </div>
+            <div id="recent-activity" class="card activity-list"></div>
+          </section>
+        </section>
+
+        <section id="page-dashboard" class="page-view">
+          <section class="summary-grid summary-grid--dashboard">
+            <article class="card stat-card">
+              <span class="stat-card__label">Open Tasks</span>
+              <strong id="dash-open" class="stat-card__value">0</strong>
+            </article>
+            <article class="card stat-card">
+              <span class="stat-card__label">In Progress</span>
+              <strong id="dash-progress" class="stat-card__value">0</strong>
+            </article>
+            <article class="card stat-card stat-card--danger">
+              <span class="stat-card__label">Overdue</span>
+              <strong id="dash-overdue" class="stat-card__value">0</strong>
+            </article>
+            <article class="card stat-card stat-card--success">
+              <span class="stat-card__label">Closed Today</span>
+              <strong id="dash-closed-today" class="stat-card__value">0</strong>
+            </article>
+          </section>
+
+          <section class="section">
+            <div class="section__header">
+              <h2 class="section__title">Department Summary</h2>
+            </div>
+            <div id="dashboard-departments" class="stack-sm"></div>
+          </section>
+
+          <section class="section">
+            <div class="section__header">
+              <h2 class="section__title">Overdue Tasks</h2>
+            </div>
+            <div id="dashboard-overdue" class="task-list"></div>
+          </section>
+
+          <section class="section section-grid-2">
+            <div class="card">
+              <div class="section__header">
+                <h2 class="section__title">Latest Activity</h2>
+              </div>
+              <div id="dashboard-activity" class="activity-list"></div>
+            </div>
+            <div class="card quick-actions-card">
+              <div class="section__header">
+                <h2 class="section__title">Quick Actions</h2>
+              </div>
+              <div class="actions-stack">
+                <button id="dash-go-tasks" class="btn btn-primary btn-full" type="button">View All Tasks</button>
+                <button id="dash-go-history" class="btn btn-secondary btn-full" type="button">Search History</button>
+                <button id="dash-go-reports" class="btn btn-secondary btn-full" type="button">Open Reports</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section id="page-tasks" class="page-view">
+          <nav id="task-status-tabs" class="tabs-scroll">
+            <button class="tab is-active" type="button" data-status="All">All</button>
+            <button class="tab" type="button" data-status="New">New</button>
+            <button class="tab" type="button" data-status="Accepted">Accepted</button>
+            <button class="tab" type="button" data-status="In Progress">In Progress</button>
+            <button class="tab" type="button" data-status="Done">Done</button>
+            <button class="tab" type="button" data-status="Closed">Closed</button>
+          </nav>
+
+          <div class="chips-scroll">
+            <button id="task-filter-high" class="chip" type="button">High+</button>
+          </div>
+
+          <div class="field">
+            <input id="tasks-search" class="input" type="text" placeholder="Search room / ticket / subject" />
+          </div>
+
+          <div id="tasks-list" class="task-list"></div>
+        </section>
+
+        <section id="page-detail" class="page-view">
+          <section class="card task-hero">
+            <div class="task-hero__top">
+              <div>
+                <p id="detail-ticket" class="task-card__ticket">LSH-0000</p>
+                <h2 id="detail-subject" class="task-hero__title">Task Subject</h2>
+                <p id="detail-location" class="task-hero__meta">Location • Department</p>
+              </div>
+            </div>
+            <div class="task-hero__badges">
+              <span id="detail-priority-badge" class="badge badge-priority-medium">Medium</span>
+              <span id="detail-status-badge" class="badge badge-status-new">New</span>
+            </div>
+          </section>
+
+          <section class="card">
+            <h3 class="block-title">Details</h3>
+            <p id="detail-description" class="detail-description">-</p>
+            <dl class="detail-list">
+              <div><dt>Department</dt><dd id="detail-department">-</dd></div>
+              <div><dt>Category</dt><dd id="detail-category">-</dd></div>
+              <div><dt>Opened by</dt><dd id="detail-opened-by">-</dd></div>
+              <div><dt>Assigned to</dt><dd id="detail-assigned-to">-</dd></div>
+              <div><dt>Created at</dt><dd id="detail-created-at">-</dd></div>
+              <div><dt>Updated at</dt><dd id="detail-updated-at">-</dd></div>
+            </dl>
+          </section>
+
+          <section class="card">
+            <h3 class="block-title">Actions</h3>
+            <div id="detail-actions" class="action-grid"></div>
+          </section>
+
+          <section class="card">
+            <h3 class="block-title">Timeline</h3>
+            <div id="detail-timeline" class="timeline"></div>
+          </section>
+
+          <section class="card">
+            <div class="field">
+              <label class="label" for="detail-note-input">Add Note</label>
+              <textarea id="detail-note-input" class="textarea" placeholder="Type note here..."></textarea>
+            </div>
+            <button id="detail-save-note-btn" class="btn btn-primary btn-full" type="button">Save Note</button>
+          </section>
+        </section>
+
+        <section id="page-create" class="page-view">
+          <form id="create-task-form" class="form-stack">
+            <section class="card">
+              <div class="field">
+                <label class="label" for="task-location">Room No. / Location</label>
+                <input id="task-location" class="input" type="text" placeholder="A203 / Lobby / Restaurant" required />
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="field">
+                <label class="label">Department</label>
+                <div class="chip-group chip-group--grid4" id="department-chips">
+                  <button class="chip" type="button" data-value="FO">FO</button>
+                  <button class="chip" type="button" data-value="FB">FB</button>
+                  <button class="chip" type="button" data-value="HK">HK</button>
+                  <button class="chip" type="button" data-value="Engineering">ENG</button>
+                </div>
+                <input id="task-department" type="hidden" required />
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="field">
+                <label class="label" for="task-category">Category</label>
+                <select id="task-category" class="select">
+                  <option value="Guest Request">Guest Request</option>
+                  <option value="Complaint">Complaint</option>
+                  <option value="Cleaning">Cleaning</option>
+                  <option value="Repair">Repair</option>
+                  <option value="Setup">Setup</option>
+                  <option value="Lost &amp; Found">Lost &amp; Found</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="field">
+                <label class="label">Priority</label>
+                <div class="chip-group chip-group--grid4" id="priority-chips">
+                  <button class="chip" type="button" data-value="Low">Low</button>
+                  <button class="chip" type="button" data-value="Medium">Medium</button>
+                  <button class="chip" type="button" data-value="High">High</button>
+                  <button class="chip" type="button" data-value="Urgent">Urgent</button>
+                </div>
+                <input id="task-priority" type="hidden" required />
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="field">
+                <label class="label" for="task-subject">Subject</label>
+                <input id="task-subject" class="input" type="text" placeholder="Air conditioner not cold" required />
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="field">
+                <label class="label" for="task-detail">Detail</label>
+                <textarea id="task-detail" class="textarea" placeholder="Describe issue or request"></textarea>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="field">
+                <label class="label">Photo</label>
+                <div class="action-row action-row--two">
+                  <button class="btn btn-secondary" type="button">Take Photo</button>
+                  <button class="btn btn-secondary" type="button">Upload File</button>
+                </div>
+                <p class="helper-text">Prototype only — photo upload UI placeholder.</p>
+              </div>
+            </section>
+
+            <section class="card meta-card">
+              <span id="opened-by-text">Opened by: -</span>
+            </section>
+          </form>
+
+          <div class="sticky-submit-bar">
+            <button id="cancel-create-btn" class="btn btn-secondary" type="button">Cancel</button>
+            <button id="submit-create-btn" class="btn btn-primary" type="submit" form="create-task-form">Create Task</button>
+          </div>
+        </section>
+
+        <section id="page-history" class="page-view">
+          <section class="card filters-panel">
+            <div class="date-grid">
+              <div class="field">
+                <label class="label" for="history-start-date">Start Date</label>
+                <input id="history-start-date" class="input" type="date" />
+              </div>
+              <div class="field">
+                <label class="label" for="history-end-date">End Date</label>
+                <input id="history-end-date" class="input" type="date" />
+              </div>
+            </div>
+
+            <div class="chips-scroll" id="history-presets">
+              <button class="chip is-active" type="button" data-preset="today">Today</button>
+              <button class="chip" type="button" data-preset="7days">Last 7 Days</button>
+              <button class="chip" type="button" data-preset="month">This Month</button>
+              <button class="chip" type="button" data-preset="all">All</button>
+            </div>
+
+            <div class="field">
+              <input id="history-search" class="input" type="text" placeholder="Search keyword / room / ticket" />
+            </div>
+
+            <div class="filters-grid">
+              <div class="field">
+                <label class="label" for="history-department">Department</label>
+                <select id="history-department" class="select">
+                  <option value="All">All</option>
+                  <option value="FO">FO</option>
+                  <option value="FB">FB</option>
+                  <option value="HK">HK</option>
+                  <option value="Engineering">Engineering</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="history-status">Status</label>
+                <select id="history-status" class="select">
+                  <option value="All">All</option>
+                  <option value="New">New</option>
+                  <option value="Accepted">Accepted</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="history-priority">Priority</label>
+                <select id="history-priority" class="select">
+                  <option value="All">All</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section__header">
+              <h2 class="section__title">History Results</h2>
+              <span id="history-count" class="section__hint">0 items</span>
+            </div>
+            <div id="history-results" class="task-list"></div>
+          </section>
+        </section>
+
+        <section id="page-reports" class="page-view">
+          <section class="card report-hero">
+            <div class="report-hero__content">
+              <p class="report-hero__eyebrow">Executive Reporting</p>
+              <h2 class="report-hero__title">Laya Service Hub Performance Report</h2>
+              <p class="report-hero__subtitle">Excom-ready snapshot for service volume, closure performance, overdue pressure, and department workload.</p>
+            </div>
+            <div class="report-hero__meta">
+              <div class="report-hero__range">
+                <span class="report-hero__label">Reporting Range</span>
+                <strong id="report-range-label">-</strong>
+              </div>
+              <div class="report-hero__actions">
+                <button id="report-export-csv" class="btn btn-secondary" type="button">Export CSV</button>
+                <button id="report-export-pdf" class="btn btn-primary" type="button">Export PDF</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card filters-panel report-filters-panel">
+            <div class="section__header">
+              <h2 class="section__title">Report Filters</h2>
+              <span class="section__hint">Manager only</span>
+            </div>
+
+            <div class="date-grid">
+              <div class="field">
+                <label class="label" for="report-start-date">Start Date</label>
+                <input id="report-start-date" class="input" type="date" />
+              </div>
+              <div class="field">
+                <label class="label" for="report-end-date">End Date</label>
+                <input id="report-end-date" class="input" type="date" />
+              </div>
+            </div>
+
+            <div class="chips-scroll" id="report-presets">
+              <button class="chip is-active" type="button" data-preset="today">Today</button>
+              <button class="chip" type="button" data-preset="7days">Last 7 Days</button>
+              <button class="chip" type="button" data-preset="month">This Month</button>
+              <button class="chip" type="button" data-preset="all">All</button>
+            </div>
+
+            <div class="report-mode-row">
+              <span class="label label--inline">View Mode</span>
+              <div class="chips-scroll" id="report-view-modes">
+                <button class="chip is-active" type="button" data-view="daily">Daily</button>
+                <button class="chip" type="button" data-view="weekly">Weekly</button>
+                <button class="chip" type="button" data-view="monthly">Monthly</button>
+              </div>
+            </div>
+
+            <div class="filters-grid filters-grid--two">
+              <div class="field">
+                <label class="label" for="report-department">Department</label>
+                <select id="report-department" class="select">
+                  <option value="All">All</option>
+                  <option value="FO">FO</option>
+                  <option value="FB">FB</option>
+                  <option value="HK">HK</option>
+                  <option value="Engineering">Engineering</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="report-status">Status</label>
+                <select id="report-status" class="select">
+                  <option value="All">All</option>
+                  <option value="New">New</option>
+                  <option value="Accepted">Accepted</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="helper-text">PDF export now generates a real PDF file in browser. CSV remains available for raw data analysis.</p>
+          </section>
+
+          <section class="summary-grid summary-grid--dashboard report-kpi-grid">
+            <article class="card stat-card report-kpi-card">
+              <span class="stat-card__label">Total Tasks</span>
+              <strong id="report-total" class="stat-card__value">0</strong>
+              <span class="report-kpi-card__foot">Selected workload</span>
+            </article>
+            <article class="card stat-card report-kpi-card report-kpi-card--success">
+              <span class="stat-card__label">Closed</span>
+              <strong id="report-closed" class="stat-card__value">0</strong>
+              <span class="report-kpi-card__foot">Completion count</span>
+            </article>
+            <article class="card stat-card report-kpi-card report-kpi-card--info">
+              <span class="stat-card__label">Open</span>
+              <strong id="report-open" class="stat-card__value">0</strong>
+              <span class="report-kpi-card__foot">Still active</span>
+            </article>
+            <article class="card stat-card report-kpi-card report-kpi-card--danger">
+              <span class="stat-card__label">Overdue</span>
+              <strong id="report-overdue" class="stat-card__value">0</strong>
+              <span class="report-kpi-card__foot">Need escalation</span>
+            </article>
+          </section>
+
+          <section class="section section-grid-2 report-summary-grid report-chart-grid">
+            <div class="card report-panel report-chart-panel">
+              <div class="section__header">
+                <div>
+                  <h2 class="section__title">Department Volume</h2>
+                  <span class="section__hint">Bar chart • workload by team</span>
+                </div>
+              </div>
+              <div id="report-department-chart" class="report-chart report-chart--bar"></div>
+            </div>
+            <div class="card report-panel report-chart-panel">
+              <div class="section__header">
+                <div>
+                  <h2 class="section__title">Status Distribution</h2>
+                  <span class="section__hint">Donut chart • current task mix</span>
+                </div>
+              </div>
+              <div class="report-donut-layout">
+                <div id="report-status-donut" class="report-chart report-chart--donut"></div>
+                <div id="report-status-legend" class="report-legend"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section section-grid-2 report-summary-grid report-chart-grid">
+            <div class="card report-panel report-chart-panel">
+              <div class="section__header">
+                <div>
+                  <h2 class="section__title">Workload Trend</h2>
+                  <span id="report-view-mode-label" class="section__hint">Daily view • created tasks</span>
+                </div>
+              </div>
+              <div id="report-trend-chart" class="report-chart report-chart--trend"></div>
+            </div>
+            <div class="card report-panel report-chart-panel">
+              <div class="section__header">
+                <div>
+                  <h2 class="section__title">Priority Breakdown</h2>
+                  <span class="section__hint">Urgency mix across selected workload</span>
+                </div>
+              </div>
+              <div id="report-priority-chart" class="report-chart report-chart--priority"></div>
+              <div id="report-priority-summary" class="stack-sm report-mini-summary"></div>
+            </div>
+          </section>
+
+          <section class="section section-grid-2 report-summary-grid">
+            <div class="card report-panel report-panel--accent">
+              <div class="section__header">
+                <h2 class="section__title">Executive Summary</h2>
+                <span class="section__hint">Auto-generated</span>
+              </div>
+              <ul id="report-exec-summary" class="executive-list"></ul>
+            </div>
+            <div class="card report-panel">
+              <div class="section__header">
+                <h2 class="section__title">Status Mix</h2>
+                <span class="section__hint">Current distribution</span>
+              </div>
+              <div id="report-status-summary" class="stack-sm"></div>
+            </div>
+          </section>
+
+          <section class="section section-grid-2 report-summary-grid">
+            <div class="card report-panel">
+              <div class="section__header">
+                <h2 class="section__title">Department Performance</h2>
+                <span class="section__hint">Workload by team</span>
+              </div>
+              <div id="report-department-summary" class="stack-sm"></div>
+            </div>
+            <div class="card report-panel">
+              <div class="section__header">
+                <h2 class="section__title">Included Tasks</h2>
+                <span class="section__hint">Filtered ticket list</span>
+              </div>
+              <div id="report-results" class="task-list"></div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <nav id="bottom-nav" class="bottom-nav bottom-nav--count-4">
+        <button id="nav-home" class="bottom-nav__item is-active" type="button">
+          <span class="bottom-nav__icon">⌂</span>
+          <span id="nav-home-label">Home</span>
+        </button>
+        <button id="nav-tasks" class="bottom-nav__item" type="button">
+          <span class="bottom-nav__icon">☰</span>
+          <span>Tasks</span>
+        </button>
+        <button id="nav-create" class="bottom-nav__item" type="button">
+          <span class="bottom-nav__icon">＋</span>
+          <span>Create</span>
+        </button>
+        <button id="nav-history" class="bottom-nav__item" type="button">
+          <span class="bottom-nav__icon">⏱</span>
+          <span id="nav-history-label">History</span>
+        </button>
+        <button id="nav-reports" class="bottom-nav__item hidden" type="button">
+          <span class="bottom-nav__icon">▣</span>
+          <span>Reports</span>
+        </button>
+      </nav>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
