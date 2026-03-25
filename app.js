@@ -35,10 +35,18 @@ const PRIORITY_COLORS = {
 
 const users = [
   { employeeId: '11025', password: '1234', name: 'Noi', role: 'Manager', department: 'FO' },
+  { employeeId: '11026', password: '1234', name: 'Pim', role: 'Supervisor', department: 'FO' },
   { employeeId: '12001', password: '1234', name: 'Anna', role: 'Staff', department: 'FO' },
+  { employeeId: '12002', password: '1234', name: 'Beam', role: 'Staff', department: 'FO' },
+  { employeeId: '22001', password: '1234', name: 'Joy', role: 'Supervisor', department: 'HK' },
   { employeeId: '22018', password: '1234', name: 'May', role: 'Staff', department: 'HK' },
+  { employeeId: '22019', password: '1234', name: 'Fon', role: 'Staff', department: 'HK' },
+  { employeeId: '33001', password: '1234', name: 'Lek', role: 'Supervisor', department: 'Engineering' },
   { employeeId: '33007', password: '1234', name: 'Art', role: 'Staff', department: 'Engineering' },
-  { employeeId: '44005', password: '1234', name: 'Ben', role: 'Staff', department: 'FB' }
+  { employeeId: '33008', password: '1234', name: 'Tom', role: 'Staff', department: 'Engineering' },
+  { employeeId: '44001', password: '1234', name: 'Mint', role: 'Supervisor', department: 'FB' },
+  { employeeId: '44005', password: '1234', name: 'Ben', role: 'Staff', department: 'FB' },
+  { employeeId: '44006', password: '1234', name: 'Nan', role: 'Staff', department: 'FB' }
 ];
 
 function createSeedTask(config) {
@@ -249,6 +257,9 @@ const els = {
   dashGoReports: document.getElementById('dash-go-reports'),
   createTaskForm: document.getElementById('create-task-form'),
   cancelCreateBtn: document.getElementById('cancel-create-btn'),
+  createAssignWrap: document.getElementById('create-assign-wrap'),
+  createAssignSelect: document.getElementById('create-assign-select'),
+  createAssignHelper: document.getElementById('create-assign-helper'),
   taskDepartment: document.getElementById('task-department'),
   taskPriority: document.getElementById('task-priority'),
   taskStatusTabs: document.getElementById('task-status-tabs'),
@@ -268,9 +279,16 @@ const els = {
   detailCategory: document.getElementById('detail-category'),
   detailOpenedBy: document.getElementById('detail-opened-by'),
   detailAssignedTo: document.getElementById('detail-assigned-to'),
+  detailAssignedBy: document.getElementById('detail-assigned-by'),
   detailCreatedAt: document.getElementById('detail-created-at'),
   detailUpdatedAt: document.getElementById('detail-updated-at'),
   detailActions: document.getElementById('detail-actions'),
+  detailAssignCard: document.getElementById('detail-assign-card'),
+  detailAssignHint: document.getElementById('detail-assign-hint'),
+  detailAssignSelect: document.getElementById('detail-assign-select'),
+  detailAssignNote: document.getElementById('detail-assign-note'),
+  detailAssignBtn: document.getElementById('detail-assign-btn'),
+  detailAssignFocusBtn: document.getElementById('detail-assign-focus-btn'),
   detailTimeline: document.getElementById('detail-timeline'),
   detailNoteInput: document.getElementById('detail-note-input'),
   detailSaveNoteBtn: document.getElementById('detail-save-note-btn'),
@@ -328,7 +346,7 @@ document.addEventListener('DOMContentLoaded', init);
 function init() {
   initializeTasks();
   bindEvents();
-  setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO');
+  setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO', false, renderCreateAssignmentState);
   setupChipGroup(document.getElementById('priority-chips'), els.taskPriority, 'Medium');
   setDatePreset('history', 'today', true);
   setDatePreset('report', 'today', true);
@@ -366,6 +384,8 @@ function bindEvents() {
   els.historyResults.addEventListener('click', onTaskCardClick);
   els.reportResults.addEventListener('click', onTaskCardClick);
   els.detailActions.addEventListener('click', onDetailActionClick);
+  els.detailAssignBtn.addEventListener('click', assignCurrentTask);
+  els.detailAssignFocusBtn.addEventListener('click', () => els.detailNoteInput.focus());
   els.detailSaveNoteBtn.addEventListener('click', saveDetailNote);
   els.historyPresets.addEventListener('click', onHistoryPresetClick);
   els.reportPresets.addEventListener('click', onReportPresetClick);
@@ -458,6 +478,7 @@ function showPage(pageName) {
 
   if (pageName === 'create') {
     els.openedByText.textContent = `Opened by: ${state.currentUser.name} / ${state.currentUser.department} / ${formatDateTime(new Date().toISOString())}`;
+    renderCreateAssignmentState();
   }
 
   if (pageName === 'tasks') renderTaskList();
@@ -508,6 +529,7 @@ function renderApp() {
   const tasks = getTasks();
   renderSummary(tasks);
   renderHomeContent(tasks);
+  renderCreateAssignmentState();
   renderTaskList();
   renderHistoryPage();
   if (isManager()) {
@@ -604,6 +626,41 @@ function getHomeConfig() {
     activityPreset: 'departmentRecent',
     sections: []
   };
+
+  if (isSupervisor()) {
+    return {
+      ...base,
+      tasksButtonLabel: `View ${department} Team Queue`,
+      activityTitle: `Latest ${department} Team Updates`,
+      activityHint: 'Team workload and supervisor follow-up',
+      sections: [
+        {
+          title: 'New / Unassigned',
+          hint: 'Open tasks waiting for supervisor assignment',
+          buttonLabel: 'Open Queue',
+          preset: 'supervisorNewUnassigned',
+          emptyTitle: 'No new unassigned task',
+          emptyDescription: 'All fresh requests already have an owner.'
+        },
+        {
+          title: 'Team In Progress',
+          hint: 'Accepted and in-progress work for your team',
+          buttonLabel: 'Open Team',
+          preset: 'supervisorTeamActive',
+          emptyTitle: 'No active team task',
+          emptyDescription: 'No accepted or in-progress work in the team right now.'
+        },
+        {
+          title: 'Assigned by Me / Overdue',
+          hint: 'Track delegation and escalations',
+          buttonLabel: 'Open Follow-up',
+          preset: 'supervisorAssignedOrOverdue',
+          emptyTitle: 'No supervisor follow-up',
+          emptyDescription: 'Nothing overdue and no active delegated work from this account.'
+        }
+      ]
+    };
+  }
 
   if (department === 'FO') {
     return {
@@ -770,8 +827,10 @@ function getHomeTasksByPreset(tasks, preset) {
   const department = state.currentUser?.department;
   const mine = (task) => task.assignedToName === state.currentUser?.name;
   const openedByMe = (task) => task.openedByName === state.currentUser?.name;
+  const assignedByMe = (task) => task.assignedByName === state.currentUser?.name;
   const deptTask = (task) => task.department === department;
   const activeTask = (task) => !['Done', 'Closed'].includes(task.status);
+  const teamActiveTask = (task) => deptTask(task) && ['Accepted', 'In Progress'].includes(task.status);
   const urgentTask = (task) => ['Urgent', 'High'].includes(task.priority) || isTaskOverdue(task);
   const vipTask = (task) => /vip|amenity|welcome/i.test(`${task.subject} ${task.detail} ${task.location}`);
 
@@ -782,6 +841,9 @@ function getHomeTasksByPreset(tasks, preset) {
     deptNew: tasks.filter((task) => deptTask(task) && task.status === 'New'),
     myInProgress: tasks.filter((task) => mine(task) && task.status === 'In Progress'),
     createdByMe: tasks.filter((task) => openedByMe(task)),
+    supervisorNewUnassigned: tasks.filter((task) => deptTask(task) && task.status === 'New' && !task.assignedToName),
+    supervisorTeamActive: tasks.filter((task) => teamActiveTask(task)),
+    supervisorAssignedOrOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && (assignedByMe(task) || urgentTask(task))),
     deptUrgentOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && urgentTask(task)),
     foFollowUp: tasks.filter((task) => activeTask(task) && (task.openedByDepartment === 'FO' || mine(task) || task.department === 'FO')),
     foUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task) && (task.openedByDepartment === 'FO' || task.department === 'FO')),
@@ -841,6 +903,9 @@ function getTaskContextLabel() {
     deptNew: `${state.currentUser?.department || 'Department'} new tasks`,
     myInProgress: 'My in progress tasks',
     createdByMe: 'Recently created by me',
+    supervisorNewUnassigned: `${state.currentUser?.department || 'Department'} new / unassigned`,
+    supervisorTeamActive: `${state.currentUser?.department || 'Department'} team active`,
+    supervisorAssignedOrOverdue: 'Assigned by me / overdue',
     deptUrgentOverdue: `${state.currentUser?.department || 'Department'} urgent / overdue`,
     foFollowUp: 'FO need follow-up',
     foUrgentOverdue: 'FO urgent / overdue',
@@ -921,6 +986,7 @@ function renderTaskDetail() {
     els.detailCategory.textContent = '-';
     els.detailOpenedBy.textContent = '-';
     els.detailAssignedTo.textContent = '-';
+    els.detailAssignedBy.textContent = '-';
     els.detailCreatedAt.textContent = '-';
     els.detailUpdatedAt.textContent = '-';
     els.detailPriorityBadge.className = 'badge badge-priority-low';
@@ -928,6 +994,7 @@ function renderTaskDetail() {
     els.detailStatusBadge.className = 'badge badge-status-new';
     els.detailStatusBadge.textContent = '-';
     els.detailActions.innerHTML = '<div class="helper-text">No action available.</div>';
+    els.detailAssignCard.classList.add('hidden');
     els.detailNoteInput.value = '';
     els.detailTimeline.innerHTML = emptyStateHTML('Task not found', 'This task may have been removed.');
     return;
@@ -941,6 +1008,7 @@ function renderTaskDetail() {
   els.detailCategory.textContent = task.category;
   els.detailOpenedBy.textContent = `${task.openedByName} / ${task.openedByDepartment}`;
   els.detailAssignedTo.textContent = task.assignedToName || '-';
+  els.detailAssignedBy.textContent = task.assignedByName ? `${task.assignedByName} / ${task.assignedByDepartment || '-'}` : '-';
   els.detailCreatedAt.textContent = formatDateTime(task.createdAt);
   els.detailUpdatedAt.textContent = formatDateTime(task.updatedAt || task.createdAt);
 
@@ -953,6 +1021,8 @@ function renderTaskDetail() {
   els.detailActions.innerHTML = actions.length
     ? actions.map((action) => `<button class="btn ${action.primary ? 'btn-primary' : 'btn-secondary'} ${action.full ? 'btn-full' : ''}" type="button" data-detail-action="${action.value}">${action.label}</button>`).join('')
     : '<div class="helper-text">No direct action available for this user in current status.</div>';
+
+  renderDetailAssignmentState(task);
 
   const logs = [...(task.logs || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   els.detailTimeline.innerHTML = logs.length
@@ -1433,6 +1503,9 @@ function onCreateTask(event) {
   const priority = els.taskPriority.value.trim();
   const subject = document.getElementById('task-subject').value.trim();
   const detail = document.getElementById('task-detail').value.trim();
+  const selectedAssigneeId = els.createAssignSelect?.value || '';
+  const canAssignNow = selectedAssigneeId && canAssignToDepartment(department);
+  const selectedAssignee = canAssignNow ? users.find((user) => user.employeeId === selectedAssigneeId) : null;
 
   if (!location || !department || !priority || !subject) {
     alert('Please fill required fields: location, department, priority, and subject.');
@@ -1441,6 +1514,16 @@ function onCreateTask(event) {
 
   const tasks = getTasks();
   const now = new Date().toISOString();
+  const logs = [
+    {
+      action: 'Created',
+      note: subject,
+      byName: state.currentUser.name,
+      byDepartment: state.currentUser.department,
+      createdAt: now
+    }
+  ];
+
   const newTask = normalizeTask({
     id: generateId(),
     ticketNo: generateTicketNo(tasks),
@@ -1450,31 +1533,158 @@ function onCreateTask(event) {
     priority,
     subject,
     detail,
-    status: 'New',
+    status: canAssignNow && selectedAssignee ? 'Accepted' : 'New',
     openedByName: state.currentUser.name,
     openedByDepartment: state.currentUser.department,
-    assignedToName: '',
+    assignedToName: selectedAssignee?.name || '',
+    assignedByName: selectedAssignee ? state.currentUser.name : '',
+    assignedByDepartment: selectedAssignee ? state.currentUser.department : '',
     createdAt: now,
     updatedAt: now,
-    logs: [
-      {
-        action: 'Created',
-        note: subject,
-        byName: state.currentUser.name,
-        byDepartment: state.currentUser.department,
-        createdAt: now
-      }
-    ]
+    assignedAt: selectedAssignee ? now : '',
+    logs
   });
+
+  if (canAssignNow && selectedAssignee) {
+    newTask.logs.unshift({
+      action: 'Assigned',
+      note: `Assigned to ${selectedAssignee.name} during task creation.`,
+      byName: state.currentUser.name,
+      byDepartment: state.currentUser.department,
+      createdAt: now
+    });
+  }
 
   tasks.unshift(newTask);
   saveTasks(tasks);
   els.createTaskForm.reset();
-  setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO', true);
+  if (els.createAssignSelect) els.createAssignSelect.value = '';
+  setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO', true, renderCreateAssignmentState);
   setupChipGroup(document.getElementById('priority-chips'), els.taskPriority, 'Medium', true);
   renderApp();
-  alert(`Task created successfully: ${newTask.ticketNo}`);
+  alert(selectedAssignee
+    ? `Task created and assigned to ${selectedAssignee.name}: ${newTask.ticketNo}`
+    : `Task created successfully: ${newTask.ticketNo}`);
   showPage('tasks');
+}
+
+function renderCreateAssignmentState() {
+  if (!els.createAssignWrap || !state.currentUser) return;
+  const selectedDepartment = els.taskDepartment?.value || 'FO';
+  const canAssign = canAssignToDepartment(selectedDepartment);
+  els.createAssignWrap.classList.toggle('hidden', !canAssign);
+  if (!canAssign) {
+    populateAssigneeSelect(els.createAssignSelect, [], '', 'Assignment available for supervisor own department or manager only');
+    return;
+  }
+
+  const assignees = getAssignableUsers(selectedDepartment);
+  populateAssigneeSelect(els.createAssignSelect, assignees, '', `Optional: assign immediately to ${selectedDepartment} team`);
+  if (els.createAssignHelper) {
+    els.createAssignHelper.textContent = isManager()
+      ? 'Manager can assign tasks to any department during creation.'
+      : `Supervisor can assign only to ${state.currentUser.department} team during creation.`;
+  }
+}
+
+function renderDetailAssignmentState(task) {
+  if (!els.detailAssignCard) return;
+  const canAssign = !!task && canManageAssignments(task) && !['Done', 'Closed'].includes(task.status);
+  els.detailAssignCard.classList.toggle('hidden', !canAssign);
+  if (!canAssign) return;
+
+  const assignees = getAssignableUsers(task.department);
+  const selectedUser = assignees.find((user) => user.name === task.assignedToName);
+  populateAssigneeSelect(
+    els.detailAssignSelect,
+    assignees,
+    selectedUser?.employeeId || '',
+    task.assignedToName ? `Currently assigned to ${task.assignedToName}. Choose another team member to reassign.` : 'No owner yet. Assign this task to a team member.'
+  );
+  if (els.detailAssignHint) {
+    els.detailAssignHint.textContent = task.assignedToName
+      ? `Current owner: ${task.assignedToName} / ${task.department}`
+      : `No owner yet / ${task.department} team`;
+  }
+  if (els.detailAssignBtn) {
+    els.detailAssignBtn.textContent = task.assignedToName ? 'Reassign Task' : 'Assign Task';
+  }
+}
+
+function assignCurrentTask() {
+  const task = getTaskById(state.currentTaskId);
+  if (!task) return;
+  if (!canManageAssignments(task)) {
+    alert('You cannot assign this task.');
+    return;
+  }
+
+  const selectedAssigneeId = els.detailAssignSelect?.value || '';
+  const assignee = users.find((user) => user.employeeId === selectedAssigneeId);
+  if (!assignee) {
+    alert('Please select a team member first.');
+    return;
+  }
+
+  const note = els.detailAssignNote?.value.trim() || '';
+  performAssignment(task.id, assignee, note);
+  if (els.detailAssignNote) els.detailAssignNote.value = '';
+  renderApp();
+  showPage('detail');
+}
+
+function performAssignment(taskId, assignee, note = '') {
+  updateTask(taskId, (draft) => {
+    const now = new Date().toISOString();
+    const previousAssignee = draft.assignedToName || '';
+    const action = previousAssignee && previousAssignee !== assignee.name ? 'Reassigned' : 'Assigned';
+    const baseNote = previousAssignee && previousAssignee !== assignee.name
+      ? `Reassigned from ${previousAssignee} to ${assignee.name}`
+      : `Assigned to ${assignee.name}`;
+    draft.assignedToName = assignee.name;
+    draft.assignedByName = state.currentUser.name;
+    draft.assignedByDepartment = state.currentUser.department;
+    draft.assignedAt = now;
+    if (draft.status === 'New') draft.status = 'Accepted';
+    draft.updatedAt = now;
+    draft.logs.unshift({
+      action,
+      note: note ? `${baseNote} / ${note}` : `${baseNote}.`,
+      byName: state.currentUser.name,
+      byDepartment: state.currentUser.department,
+      createdAt: now
+    });
+    return draft;
+  });
+}
+
+function populateAssigneeSelect(selectEl, people, selectedValue = '', emptyLabel = 'Select team member') {
+  if (!selectEl) return;
+  const options = [`<option value="">${escapeHtml(emptyLabel)}</option>`].concat(
+    people.map((user) => `<option value="${escapeHtml(user.employeeId)}" ${selectedValue === user.employeeId ? 'selected' : ''}>${escapeHtml(user.name)} / ${escapeHtml(user.role)}</option>`)
+  );
+  selectEl.innerHTML = options.join('');
+}
+
+function getAssignableUsers(department) {
+  return users
+    .filter((user) => user.department === department && user.role !== 'Manager')
+    .sort((a, b) => {
+      const roleWeight = (role) => ({ Supervisor: 0, Staff: 1 }[role] ?? 2);
+      return roleWeight(a.role) - roleWeight(b.role) || a.name.localeCompare(b.name);
+    });
+}
+
+function canAssignToDepartment(department) {
+  return isManager() || (isSupervisor() && state.currentUser?.department === department);
+}
+
+function canManageAssignments(task) {
+  return isManager() || (isSupervisor() && state.currentUser?.department === task.department);
+}
+
+function canWorkOnTask(task) {
+  return isManager() || canManageAssignments(task) || task.assignedToName === state.currentUser?.name;
 }
 
 function saveDetailNote() {
@@ -1541,21 +1751,23 @@ function getDetailActions(task) {
   const actions = [];
   const manager = isManager();
   const sameDepartment = state.currentUser.department === task.department;
+  const canManage = canManageAssignments(task);
+  const canWork = canWorkOnTask(task);
 
-  if (task.status === 'New' && (sameDepartment || manager)) {
+  if (task.status === 'New' && sameDepartment && !canManage) {
     actions.push({ value: 'accept', label: 'Accept Task', primary: true, full: true });
   }
-  if (task.status === 'Accepted' && (sameDepartment || manager)) {
+  if (task.status === 'Accepted' && canWork) {
     actions.push({ value: 'start', label: 'Start Work', primary: true, full: true });
   }
-  if (task.status === 'In Progress' && (sameDepartment || manager)) {
+  if (task.status === 'In Progress' && canWork) {
     actions.push({ value: 'focus-note', label: 'Add Note', primary: false });
     actions.push({ value: 'done', label: 'Mark Done', primary: true });
   }
   if (task.status === 'Done' && (manager || state.currentUser.department === task.openedByDepartment)) {
     actions.push({ value: 'close', label: 'Close Task', primary: true, full: true });
   }
-  if (task.status === 'Closed' && manager) {
+  if (task.status === 'Closed' && (manager || canManage)) {
     actions.push({ value: 'reopen', label: 'Reopen Task', primary: false, full: true });
   }
   return actions;
@@ -2120,6 +2332,8 @@ function normalizeTask(task) {
     openedByName: task.openedByName || '-',
     openedByDepartment: task.openedByDepartment || '-',
     assignedToName: task.assignedToName || '',
+    assignedByName: task.assignedByName || '',
+    assignedByDepartment: task.assignedByDepartment || '',
     createdAt: task.createdAt || new Date().toISOString(),
     updatedAt: task.updatedAt || task.createdAt || new Date().toISOString(),
     assignedAt: task.assignedAt || '',
@@ -2195,7 +2409,7 @@ function createLog(action, note) {
   };
 }
 
-function setupChipGroup(container, hiddenInput, defaultValue, forceReset = false) {
+function setupChipGroup(container, hiddenInput, defaultValue, forceReset = false, onChange = null) {
   const chips = Array.from(container.querySelectorAll('.chip'));
   if (forceReset || !hiddenInput.value) {
     hiddenInput.value = defaultValue;
@@ -2209,6 +2423,7 @@ function setupChipGroup(container, hiddenInput, defaultValue, forceReset = false
       chips.forEach((c) => c.classList.remove('is-active'));
       chip.classList.add('is-active');
       hiddenInput.value = chip.dataset.value;
+      if (typeof onChange === 'function') onChange(hiddenInput.value);
     });
   });
 }
@@ -2323,6 +2538,10 @@ function getTaskRangeDate(task) {
 
 function isManager() {
   return state.currentUser?.role === 'Manager';
+}
+
+function isSupervisor() {
+  return state.currentUser?.role === 'Supervisor';
 }
 
 function emptyStateHTML(title, description) {

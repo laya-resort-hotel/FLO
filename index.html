@@ -39,7 +39,7 @@
         </section>
 
         <div class="login-footer">
-          <span>v1.8.0 Role Home Patch</span>
+          <span>v1.9.0 Supervisor Assign Flow</span>
           <span>Local Demo</span>
         </div>
 
@@ -47,6 +47,10 @@
           <h2>Demo Accounts</h2>
           <ul>
             <li><strong>FO Manager:</strong> 11025 / 1234</li>
+            <li><strong>FO Supervisor:</strong> 11026 / 1234</li>
+            <li><strong>HK Supervisor:</strong> 22001 / 1234</li>
+            <li><strong>ENG Supervisor:</strong> 33001 / 1234</li>
+            <li><strong>FB Supervisor:</strong> 44001 / 1234</li>
             <li><strong>FO Staff:</strong> 12001 / 1234</li>
             <li><strong>HK Staff:</strong> 22018 / 1234</li>
             <li><strong>ENG Staff:</strong> 33007 / 1234</li>
@@ -243,6 +247,7 @@
               <div><dt>Category</dt><dd id="detail-category">-</dd></div>
               <div><dt>Opened by</dt><dd id="detail-opened-by">-</dd></div>
               <div><dt>Assigned to</dt><dd id="detail-assigned-to">-</dd></div>
+              <div><dt>Assigned by</dt><dd id="detail-assigned-by">-</dd></div>
               <div><dt>Created at</dt><dd id="detail-created-at">-</dd></div>
               <div><dt>Updated at</dt><dd id="detail-updated-at">-</dd></div>
             </dl>
@@ -251,6 +256,27 @@
           <section class="card">
             <h3 class="block-title">Actions</h3>
             <div id="detail-actions" class="action-grid"></div>
+          </section>
+
+          <section class="card hidden" id="detail-assign-card">
+            <div class="section__header">
+              <div>
+                <h3 class="block-title">Supervisor Assignment</h3>
+                <span id="detail-assign-hint" class="section__hint">Assign task to a team member</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="label" for="detail-assign-select">Assign to</label>
+              <select id="detail-assign-select" class="select"></select>
+            </div>
+            <div class="field">
+              <label class="label" for="detail-assign-note">Assignment Note</label>
+              <textarea id="detail-assign-note" class="textarea" placeholder="Optional handover or follow-up note"></textarea>
+            </div>
+            <div class="action-row action-row--two">
+              <button id="detail-assign-btn" class="btn btn-primary" type="button">Assign Task</button>
+              <button id="detail-assign-focus-btn" class="btn btn-secondary" type="button">Jump to Notes</button>
+            </div>
           </section>
 
           <section class="card">
@@ -339,6 +365,14 @@
                   <button class="btn btn-secondary" type="button">Upload File</button>
                 </div>
                 <p class="helper-text">Prototype only - photo upload UI placeholder.</p>
+              </div>
+            </section>
+
+            <section id="create-assign-wrap" class="card hidden">
+              <div class="field">
+                <label class="label" for="create-assign-select">Assign Now</label>
+                <select id="create-assign-select" class="select"></select>
+                <p id="create-assign-helper" class="helper-text">Supervisor can assign tasks to their own department team.</p>
               </div>
             </section>
 
