@@ -1362,41 +1362,32 @@ button { cursor: pointer; }
 }
 
 
-.badge-source-mod {
-  background: rgba(31, 77, 58, 0.12);
-  border: 1px solid rgba(31, 77, 58, 0.18);
-  color: var(--primary);
+.bottom-nav--count-1 { grid-template-columns: repeat(1, 1fr); }
+.bottom-nav--count-2 { grid-template-columns: repeat(2, 1fr); }
+.bottom-nav--count-3 { grid-template-columns: repeat(3, 1fr); }
+.team-admin-form { margin-bottom: 14px; }
+.team-admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e7ece8;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfa 100%);
 }
-
-.mod-action-board__hero {
-  background: linear-gradient(135deg, rgba(31, 77, 58, 0.08) 0%, rgba(176, 139, 87, 0.08) 100%);
-  border-color: #d7e3dc;
+.team-admin-row__meta {
+  display: grid;
+  gap: 4px;
 }
-
-.mod-action-stat {
-  background: rgba(255, 255, 255, 0.82);
+.team-admin-row__meta strong {
+  font-size: 14px;
 }
-
-.mod-action-card {
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcfb 100%);
-}
-
-.mod-action-card__note {
-  font-size: 13px;
-  line-height: 1.5;
+.team-admin-row__sub {
+  font-size: 12px;
   color: var(--text-soft);
-  background: rgba(31, 77, 58, 0.05);
-  border-radius: 12px;
-  padding: 10px 12px;
 }
-
-#home-mod-board .task-card__actions .btn,
-#mod-action-list .task-card__actions .btn {
-  min-width: 0;
-}
-
-@media (min-width: 720px) {
-  #mod-action-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.work-upload-note {
+  font-size: 12px;
+  color: var(--text-soft);
 }

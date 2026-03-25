@@ -1,7 +1,8 @@
 const STORAGE_KEYS = {
-  currentUser: 'lsh_current_user',
-  tasks: 'lsh_tasks',
-  modReports: 'lsh_mod_reports'
+  currentUser: 'lsh13_current_user',
+  tasks: 'lsh13_tasks',
+  modReports: 'lsh13_mod_reports',
+  users: 'lsh13_users'
 };
 
 const OVERDUE_MINUTES = {
@@ -36,22 +37,23 @@ const PRIORITY_COLORS = {
   Low: '#6b736d'
 };
 
-const users = [
-  { employeeId: '11025', password: '1234', name: 'Noi', role: 'Manager', department: 'FO' },
-  { employeeId: '11026', password: '1234', name: 'Pim', role: 'Supervisor', department: 'FO' },
-  { employeeId: '12001', password: '1234', name: 'Anna', role: 'Staff', department: 'FO' },
-  { employeeId: '12002', password: '1234', name: 'Beam', role: 'Staff', department: 'FO' },
-  { employeeId: '22001', password: '1234', name: 'Joy', role: 'Supervisor', department: 'HK' },
-  { employeeId: '22018', password: '1234', name: 'May', role: 'Staff', department: 'HK' },
-  { employeeId: '22019', password: '1234', name: 'Fon', role: 'Staff', department: 'HK' },
-  { employeeId: '33001', password: '1234', name: 'Lek', role: 'Supervisor', department: 'Engineering' },
-  { employeeId: '33007', password: '1234', name: 'Art', role: 'Staff', department: 'Engineering' },
-  { employeeId: '33008', password: '1234', name: 'Tom', role: 'Staff', department: 'Engineering' },
-  { employeeId: '44001', password: '1234', name: 'Mint', role: 'Supervisor', department: 'FB' },
-  { employeeId: '44005', password: '1234', name: 'Ben', role: 'Staff', department: 'FB' },
-  { employeeId: '44006', password: '1234', name: 'Nan', role: 'Staff', department: 'FB' },
+const defaultUsers = [
+  { employeeId: '11025', password: '1234', name: 'Noi', role: 'CGM', department: 'FO' },
+  { employeeId: '11026', password: '1234', name: 'Pim', role: 'DOR', department: 'FO' },
+  { employeeId: '12001', password: '1234', name: 'Anna', role: 'FO Staff', department: 'FO' },
+  { employeeId: '12002', password: '1234', name: 'Beam', role: 'FO Staff', department: 'FO' },
+  { employeeId: '22001', password: '1234', name: 'Joy', role: 'Housekeeping Manager', department: 'HK' },
+  { employeeId: '22018', password: '1234', name: 'May', role: 'HK Staff', department: 'HK' },
+  { employeeId: '22019', password: '1234', name: 'Fon', role: 'HK Staff', department: 'HK' },
+  { employeeId: '33001', password: '1234', name: 'Lek', role: 'ENG Manager', department: 'Engineering' },
+  { employeeId: '33007', password: '1234', name: 'Art', role: 'ENG Staff', department: 'Engineering' },
+  { employeeId: '33008', password: '1234', name: 'Tom', role: 'ENG Staff', department: 'Engineering' },
+  { employeeId: '44001', password: '1234', name: 'Mint', role: 'FB Manager', department: 'FB' },
+  { employeeId: '44005', password: '1234', name: 'Ben', role: 'FB Staff', department: 'FB' },
+  { employeeId: '44006', password: '1234', name: 'Nan', role: 'FB Staff', department: 'FB' },
   { employeeId: '99001', password: '1234', name: 'Mook', role: 'MOD', department: 'Hotel Ops' }
 ];
+let users = [];
 
 function createSeedTask(config) {
   const createdAt = new Date(Date.now() - (config.createdAtOffsetMin || 0) * 60000).toISOString();
@@ -88,6 +90,9 @@ function createSeedTask(config) {
     openedByName: config.openedByName,
     openedByDepartment: config.openedByDepartment,
     assignedToName: config.assignedToName || '',
+    sourceType: config.sourceType || '',
+    sourceReference: config.sourceReference || '',
+    mediaAttachments: config.mediaAttachments || [],
     createdAt,
     updatedAt: logs[0]?.createdAt || createdAt,
     assignedAt,
@@ -105,8 +110,10 @@ const seedTasks = [
     department: 'Engineering',
     category: 'Repair',
     priority: 'High',
-    subject: 'Air conditioner not cold',
-    detail: 'Guest reported AC is not cold since morning.',
+    subject: '[MOD] Loose shower handle at pool area',
+    detail: 'Pool shower handle is loose and was opened from MOD round.',
+    sourceType: 'MOD',
+    sourceReference: 'MOD-20260325-0002',
     status: 'New',
     openedByName: 'Noi',
     openedByDepartment: 'FO',
@@ -193,7 +200,46 @@ const seedTasks = [
       { action: 'Closed', note: 'FO confirmed guest satisfied.', byName: 'Noi', byDepartment: 'FO', offsetMin: 1380 }
     ]
   })
-];
+,
+  createSeedTask({
+    ticketNo: 'LSH-20260325-0006',
+    location: 'Front desk counter',
+    department: 'FO',
+    category: 'Service',
+    priority: 'Urgent',
+    subject: '[MOD] Queue signage missing at check-in desk',
+    detail: 'Open finding from MOD round for FO immediate correction.',
+    status: 'New',
+    openedByName: 'Mook',
+    openedByDepartment: 'Hotel Ops',
+    assignedToName: '',
+    sourceType: 'MOD',
+    sourceReference: 'MOD-20260325-0003',
+    createdAtOffsetMin: 18,
+    logs: [
+      { action: 'Created', note: 'Task opened from MOD report MOD-20260325-0003.', byName: 'Mook', byDepartment: 'Hotel Ops', offsetMin: 18 }
+    ]
+  }),
+  createSeedTask({
+    ticketNo: 'LSH-20260325-0007',
+    location: 'Breakfast station',
+    department: 'FB',
+    category: 'Service',
+    priority: 'High',
+    subject: '[MOD] Juice refill station looked untidy',
+    detail: 'Open finding from MOD round for FB follow-up.',
+    status: 'Accepted',
+    openedByName: 'Mook',
+    openedByDepartment: 'Hotel Ops',
+    assignedToName: 'Ben',
+    sourceType: 'MOD',
+    sourceReference: 'MOD-20260325-0004',
+    createdAtOffsetMin: 52,
+    logs: [
+      { action: 'Created', note: 'Task opened from MOD report MOD-20260325-0004.', byName: 'Mook', byDepartment: 'Hotel Ops', offsetMin: 52 },
+      { action: 'Accepted', note: 'Accepted by FB after MOD round.', byName: 'Ben', byDepartment: 'FB', offsetMin: 45 }
+    ]
+  })];
 
 const seedModReports = [
   normalizeModReport({
@@ -210,6 +256,10 @@ const seedModReports = [
     status: 'Open',
     openedByName: 'Mook',
     openedByDepartment: 'Hotel Ops',
+    linkedTaskId: 'LSH-20260325-0007',
+    linkedTaskTicketNo: 'LSH-20260325-0007',
+    linkedTaskId: 'LSH-20260325-0006',
+    linkedTaskTicketNo: 'LSH-20260325-0006',
     createdAt: new Date(Date.now() - 75 * 60000).toISOString(),
     updatedAt: new Date(Date.now() - 75 * 60000).toISOString(),
     attachments: [],
@@ -238,44 +288,47 @@ const seedModReports = [
       { action: 'Reported', note: 'Opened during MOD pool inspection.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 35 * 60000).toISOString() },
       { action: 'Follow-up Started', note: 'Engineering informed and area blocked.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 20 * 60000).toISOString() }
     ]
-  }),
+  })
+];
+
+const extraSeedModReports = [
   normalizeModReport({
     id: 'mod_seed_3',
     reportNo: 'MOD-20260325-0003',
-    area: 'Front Desk',
-    location: 'Lobby counter',
+    area: 'Front Office',
+    location: 'Front desk counter',
     department: 'FO',
-    category: 'Guest Request',
-    priority: 'High',
-    subject: 'Counter signage not updated for airport transfer',
-    detail: 'Airport transfer information card still shows old timing and should be updated before afternoon arrival.',
-    actionNote: 'Please replace printed signage and brief FO team on current timing.',
+    category: 'Service',
+    priority: 'Urgent',
+    subject: 'Queue signage missing at check-in desk',
+    detail: 'Guest queue formed without any direction sign during busy arrival hour.',
+    actionNote: 'Set queue sign and reinforce FO flow immediately.',
     status: 'Open',
     openedByName: 'Mook',
     openedByDepartment: 'Hotel Ops',
-    createdAt: new Date(Date.now() - 55 * 60000).toISOString(),
-    updatedAt: new Date(Date.now() - 45 * 60000).toISOString(),
+    createdAt: new Date(Date.now() - 18 * 60000).toISOString(),
+    updatedAt: new Date(Date.now() - 18 * 60000).toISOString(),
     attachments: [],
-    logs: [{ action: 'Reported', note: 'Found during lobby round.', byName: 'Mook', byDepartment: 'Hotel Ops', createdAt: new Date(Date.now() - 55 * 60000).toISOString() }]
+    logs: [{ action: 'Reported', note: 'Opened during PM lobby walk.', byName: 'Mook', byDepartment: 'Hotel Ops', createdAt: new Date(Date.now() - 18 * 60000).toISOString() }]
   }),
   normalizeModReport({
     id: 'mod_seed_4',
     reportNo: 'MOD-20260325-0004',
-    area: 'Restaurant',
+    area: 'Restaurant / Bar',
     location: 'Breakfast station',
     department: 'FB',
-    category: 'Setup',
-    priority: 'Medium',
-    subject: 'Jam label tray incomplete',
-    detail: 'Breakfast condiment tray missing some labels and should be corrected before next service.',
-    actionNote: 'Please relabel the tray and verify station presentation standard.',
+    category: 'Service',
+    priority: 'High',
+    subject: 'Juice refill station looked untidy',
+    detail: 'Refill area had visible drip marks and incomplete setup.',
+    actionNote: 'Refresh setup before next service wave and monitor every 15 minutes.',
     status: 'Open',
-    openedByName: 'Noi',
-    openedByDepartment: 'FO',
-    createdAt: new Date(Date.now() - 95 * 60000).toISOString(),
-    updatedAt: new Date(Date.now() - 80 * 60000).toISOString(),
+    openedByName: 'Mook',
+    openedByDepartment: 'Hotel Ops',
+    createdAt: new Date(Date.now() - 52 * 60000).toISOString(),
+    updatedAt: new Date(Date.now() - 52 * 60000).toISOString(),
     attachments: [],
-    logs: [{ action: 'Reported', note: 'Found during breakfast outlet check.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 95 * 60000).toISOString() }]
+    logs: [{ action: 'Reported', note: 'Observed during breakfast round.', byName: 'Mook', byDepartment: 'Hotel Ops', createdAt: new Date(Date.now() - 52 * 60000).toISOString() }]
   })
 ];
 
@@ -316,7 +369,6 @@ const els = {
   topbarSubtitle: document.getElementById('topbar-subtitle'),
   openedByText: document.getElementById('opened-by-text'),
   homeViewTasksBtn: document.getElementById('home-view-tasks-btn'),
-  homeModBoardQuickBtn: document.getElementById('home-mod-board-quick-btn'),
   homeSection1Title: document.getElementById('home-section-1-title'),
   homeSection1Hint: document.getElementById('home-section-1-hint'),
   homeSection1Btn: document.getElementById('home-section-1-btn'),
@@ -332,11 +384,15 @@ const els = {
   recentActivityTitle: document.getElementById('recent-activity-title'),
   recentActivityHint: document.getElementById('recent-activity-hint'),
   recentActivity: document.getElementById('recent-activity'),
-  homeModBoard: document.getElementById('home-mod-board'),
-  homeModBoardTitle: document.getElementById('home-mod-board-title'),
-  homeModBoardHint: document.getElementById('home-mod-board-hint'),
-  homeModBoardBtn: document.getElementById('home-mod-board-btn'),
-  homeModBoardList: document.getElementById('home-mod-board-list'),
+  teamAdminSection: document.getElementById('team-admin-section'),
+  teamAdminTitle: document.getElementById('team-admin-title'),
+  teamAdminHint: document.getElementById('team-admin-hint'),
+  teamAdminForm: document.getElementById('team-admin-form'),
+  teamAdminList: document.getElementById('team-admin-list'),
+  teamMemberName: document.getElementById('team-member-name'),
+  teamMemberId: document.getElementById('team-member-id'),
+  teamMemberPassword: document.getElementById('team-member-password'),
+  teamMemberResetBtn: document.getElementById('team-member-reset-btn'),
   statNew: document.getElementById('stat-new'),
   statProgress: document.getElementById('stat-progress'),
   statDone: document.getElementById('stat-done'),
@@ -364,13 +420,6 @@ const els = {
   taskContextBar: document.getElementById('task-context-bar'),
   taskContextLabel: document.getElementById('task-context-label'),
   taskContextClear: document.getElementById('task-context-clear'),
-  modActionBoard: document.getElementById('mod-action-board'),
-  modActionBoardHint: document.getElementById('mod-action-board-hint'),
-  modActionSummary: document.getElementById('mod-action-summary'),
-  modActionCount: document.getElementById('mod-action-count'),
-  modActionFilters: document.getElementById('mod-action-filters'),
-  modActionOpenAll: document.getElementById('mod-action-open-all'),
-  modActionList: document.getElementById('mod-action-list'),
   supervisorBoard: document.getElementById('supervisor-board'),
   supervisorBoardSummary: document.getElementById('supervisor-board-summary'),
   teamQuickFilters: document.getElementById('team-quick-filters'),
@@ -407,6 +456,12 @@ const els = {
   detailAssignFocusBtn: document.getElementById('detail-assign-focus-btn'),
   detailMediaCard: document.getElementById('detail-media-card'),
   detailMediaList: document.getElementById('detail-media-list'),
+  detailWorkUploadCard: document.getElementById('detail-work-upload-card'),
+  detailWorkUploadHint: document.getElementById('detail-work-upload-hint'),
+  detailWorkMediaInput: document.getElementById('detail-work-media-input'),
+  detailWorkMediaPreview: document.getElementById('detail-work-media-preview'),
+  detailWorkMediaSaveBtn: document.getElementById('detail-work-media-save-btn'),
+  detailWorkMediaClearBtn: document.getElementById('detail-work-media-clear-btn'),
   detailTimeline: document.getElementById('detail-timeline'),
   detailNoteInput: document.getElementById('detail-note-input'),
   detailSaveNoteBtn: document.getElementById('detail-save-note-btn'),
@@ -478,13 +533,14 @@ const state = {
   currentModReportId: null,
   modFilter: 'all',
   modSearch: '',
-  modDraftไฟล์แนบ: [],
-  modActionFilter: 'all'
+  modDraftMedia: [],
+  detailDraftMedia: []
 };
 
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
+  initializeUsers();
   initializeTasks();
   initializeModReports();
   bindEvents();
@@ -511,19 +567,13 @@ function bindEvents() {
   els.navHistory.addEventListener('click', () => showPage('history'));
   els.navMod.addEventListener('click', () => showPage('mod'));
   els.navReports.addEventListener('click', () => showPage('reports'));
-  els.homeCreateBtn.addEventListener('click', () => showPage('create'));
+  els.homeCreateBtn.addEventListener('click', () => showPage(canCreateTasks() ? 'create' : getDefaultLandingPage()));
   els.homeViewTasksBtn.addEventListener('click', openDepartmentTasksFromHome);
-  if (els.homeModBoardQuickBtn) els.homeModBoardQuickBtn.addEventListener('click', openModBoardFromHome);
-  if (els.homeModBoardBtn) els.homeModBoardBtn.addEventListener('click', openModBoardFromHome);
-  if (els.homeModBoardList) els.homeModBoardList.addEventListener('click', onModActionBoardClick);
   els.cancelCreateBtn.addEventListener('click', () => showPage(getDefaultLandingPage()));
   els.createTaskForm.addEventListener('submit', onCreateTask);
   els.taskStatusTabs.addEventListener('click', onTaskTabClick);
   els.taskFilterHigh.addEventListener('click', toggleHighFilter);
   els.taskContextClear.addEventListener('click', () => { clearTaskContext(); renderTaskList(); updateTopbar('tasks'); });
-  if (els.modActionFilters) els.modActionFilters.addEventListener('click', onModActionBoardFilterClick);
-  if (els.modActionList) els.modActionList.addEventListener('click', onModActionBoardClick);
-  if (els.modActionOpenAll) els.modActionOpenAll.addEventListener('click', () => openTaskPreset('modDept'));
   els.teamQuickFilters.addEventListener('click', onTeamQuickFilterClick);
   els.teamAssigneeFilter.addEventListener('change', onTeamAssigneeFilterChange);
   els.teamFilterClear.addEventListener('click', resetSupervisorTaskBoardFilters);
@@ -545,6 +595,13 @@ function bindEvents() {
   els.detailAssignBtn.addEventListener('click', assignCurrentTask);
   els.detailAssignFocusBtn.addEventListener('click', () => els.detailNoteInput.focus());
   els.detailSaveNoteBtn.addEventListener('click', saveDetailNote);
+  if (els.teamAdminForm) els.teamAdminForm.addEventListener('submit', onAddTeamMember);
+  if (els.teamMemberResetBtn) els.teamMemberResetBtn.addEventListener('click', resetTeamAdminForm);
+  if (els.teamAdminList) els.teamAdminList.addEventListener('click', onTeamAdminListClick);
+  if (els.detailWorkMediaInput) els.detailWorkMediaInput.addEventListener('change', onDetailWorkMediaSelected);
+  if (els.detailWorkMediaPreview) els.detailWorkMediaPreview.addEventListener('click', onDetailWorkMediaPreviewClick);
+  if (els.detailWorkMediaSaveBtn) els.detailWorkMediaSaveBtn.addEventListener('click', saveDetailWorkMedia);
+  if (els.detailWorkMediaClearBtn) els.detailWorkMediaClearBtn.addEventListener('click', clearDetailWorkMediaDraft);
   els.historyPresets.addEventListener('click', onHistoryPresetClick);
   els.reportPresets.addEventListener('click', onReportPresetClick);
   els.reportViewModes.addEventListener('click', onReportViewModeClick);
@@ -583,14 +640,41 @@ function initializeTasks() {
 function initializeModReports() {
   const existing = localStorage.getItem(STORAGE_KEYS.modReports);
   if (!existing) {
-    localStorage.setItem(STORAGE_KEYS.modReports, JSON.stringify(seedModReports));
+    localStorage.setItem(STORAGE_KEYS.modReports, JSON.stringify([...seedModReports, ...extraSeedModReports]));
+  }
+}
+
+function initializeUsers() {
+  const existing = localStorage.getItem(STORAGE_KEYS.users);
+  if (!existing) {
+    localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(defaultUsers));
+  }
+  users = getUsers();
+}
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
+}
+
+function saveUsers(nextUsers) {
+  users = nextUsers.map((user) => ({ ...user }));
+  localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+  if (state.currentUser) {
+    const refreshed = users.find((user) => user.employeeId === state.currentUser.employeeId);
+    if (refreshed) {
+      state.currentUser = refreshed;
+      localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(refreshed));
+    }
   }
 }
 
 function restoreSession() {
   const savedUser = localStorage.getItem(STORAGE_KEYS.currentUser);
   if (!savedUser) return;
-  state.currentUser = JSON.parse(savedUser);
+  const parsed = JSON.parse(savedUser);
+  const refreshed = users.find((user) => user.employeeId === parsed.employeeId) || parsed;
+  state.currentUser = refreshed;
+  localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(refreshed));
   showApp();
 }
 
@@ -627,16 +711,21 @@ function showApp() {
 }
 
 function configureNavigation() {
-  const manager = isManager();
-  const modAccess = canAccessMod();
+  const modPageAccess = canAccessMod();
   const reportsAccess = canViewReports();
-  els.navHomeLabel.textContent = manager ? 'Dash' : 'Home';
+  const tasksAccess = canViewTaskList();
+  const createAccess = canCreateTasks();
+  const historyAccess = canViewHistory();
+  els.navHomeLabel.textContent = isMOD() ? 'MOD' : isCGM() ? 'Dash' : 'Home';
   els.navHistoryLabel.textContent = 'History';
-  els.navMod.classList.toggle('hidden', !modAccess);
+  els.navTasks.classList.toggle('hidden', !tasksAccess);
+  els.navCreate.classList.toggle('hidden', !createAccess);
+  els.navHistory.classList.toggle('hidden', !historyAccess);
+  els.navMod.classList.toggle('hidden', !modPageAccess || isMOD());
   els.navReports.classList.toggle('hidden', !reportsAccess);
-  els.bottomNav.classList.remove('bottom-nav--count-4', 'bottom-nav--count-5', 'bottom-nav--count-6');
-  const visibleCount = 4 + (modAccess ? 1 : 0) + (reportsAccess ? 1 : 0);
-  els.bottomNav.classList.add(`bottom-nav--count-${visibleCount}`);
+  els.bottomNav.classList.remove('bottom-nav--count-1', 'bottom-nav--count-2', 'bottom-nav--count-3', 'bottom-nav--count-4', 'bottom-nav--count-5', 'bottom-nav--count-6');
+  const visibleCount = [els.navHome, els.navTasks, els.navCreate, els.navHistory, els.navMod, els.navReports].filter((btn) => !btn.classList.contains('hidden')).length;
+  els.bottomNav.classList.add(`bottom-nav--count-${Math.max(1, visibleCount)}`);
 }
 
 function showPage(pageName) {
@@ -682,7 +771,7 @@ function setActiveNav(pageName) {
     detail: els.navTasks,
     create: els.navCreate,
     history: els.navHistory,
-    mod: els.navMod,
+    mod: isMOD() ? els.navHome : els.navMod,
     reports: els.navReports
   };
   [els.navHome, els.navTasks, els.navCreate, els.navHistory, els.navMod, els.navReports].forEach((btn) => btn.classList.remove('is-active'));
@@ -691,14 +780,14 @@ function setActiveNav(pageName) {
 
 function updateTopbar(pageName) {
   const titleMap = {
-    home: [`สวัสดี, ${state.currentUser.name}`, `${thDepartment(state.currentUser.department)} / ${thRole(state.currentUser.role)}`],
-    dashboard: ['แดชบอร์ดผู้จัดการ', 'ภาพรวมงานปฏิบัติการโรงแรม'],
-    create: ['เปิดงานใหม่', 'สร้างคำขอหรือแจ้งงานใหม่'],
-    tasks: ['รายการงาน', getTaskPageSubtitle()],
-    detail: ['รายละเอียดงาน', 'ดูสถานะ บันทึก และการดำเนินการ'],
-    history: ['ประวัติงาน', 'ค้นหางานที่ผ่านมา'],
-    mod: ['MOD Checklist Report', 'รายการตรวจและประเด็นที่พบประจำวัน'],
-    reports: ['รายงาน', 'สรุปผลและส่งออกข้อมูล']
+    home: [`Good Morning, ${state.currentUser.name}`, `${state.currentUser.department} / ${state.currentUser.role}`],
+    dashboard: ['CGM Dashboard', 'Hotel operations overview'],
+    create: ['Create Task', 'Open a new request'],
+    tasks: ['Tasks', getTaskPageSubtitle()],
+    detail: ['Task Detail', 'View status, notes, and action'],
+    history: ['History', 'Search previous tasks'],
+    mod: ['MOD Checklist Report', 'Open findings from daily inspection'],
+    reports: ['Reports', 'Summary and export']
   };
   const [title, subtitle] = titleMap[pageName] || ['Laya Service Hub', ''];
   els.topbarTitle.textContent = title;
@@ -709,13 +798,14 @@ function renderApp() {
   const tasks = getTasks();
   renderSummary(tasks);
   renderHomeContent(tasks);
-  renderHomeModActionBoard();
+  renderCreateDepartmentChoices();
   renderCreateAssignmentState();
+  renderTeamAdminSection();
   renderSupervisorTaskBoard();
   renderTaskList();
   renderHistoryPage();
   if (canAccessMod()) renderModPage();
-  if (isManager()) renderDashboardPage();
+  if (isCGM()) renderDashboardPage();
   if (canViewReports()) renderReportsPage();
   if (state.currentTaskId) renderTaskDetail();
 }
@@ -730,9 +820,9 @@ function renderSummary(tasks) {
 }
 
 function renderHomeContent(tasks) {
-  if (isManager()) return;
+  if (isCGM()) return;
 
-  const visibleTasks = getVisibleTasks(tasks);
+  const visibleTasks = getHomeScopedTasks(tasks);
   const config = getHomeConfig();
   const sectionBindings = [
     {
@@ -778,35 +868,11 @@ function renderHomeContent(tasks) {
   renderRecentActivity(visibleTasks, config.activityPreset);
 }
 
-
-function renderHomeModActionBoard() {
-  if (!els.homeModBoard) return;
-  if (!shouldShowModActionBoard()) {
-    els.homeModBoard.classList.add('hidden');
-    if (els.homeModBoardQuickBtn) els.homeModBoardQuickBtn.classList.add('hidden');
-    return;
-  }
-
-  const reports = getFilteredModActionReports();
-  const department = state.currentUser?.department || 'Department';
-  els.homeModBoard.classList.remove('hidden');
-  if (els.homeModBoardQuickBtn) els.homeModBoardQuickBtn.classList.remove('hidden');
-  if (els.homeModBoardTitle) els.homeModBoardTitle.textContent = `บอร์ดงานจาก MOD / ${thDepartment(department)}`;
-  if (els.homeModBoardHint) {
-    els.homeModBoardHint.textContent = isSupervisor()
-      ? 'ประเด็นที่ MOD ตรวจพบของแผนกคุณสำหรับติดตามโดยหัวหน้างาน'
-      : 'ประเด็นที่ MOD ตรวจพบในความรับผิดชอบของแผนกคุณ';
-  }
-  const preview = reports.slice(0, 3);
-  els.homeModBoardList.innerHTML = preview.length
-    ? preview.map((report) => modActionReportCardHTML(report, { compact: true })).join('')
-    : emptyStateHTML('ยังไม่มีรายการจาก MOD', 'ขณะนี้ยังไม่มีประเด็นเปิดอยู่จาก MOD สำหรับแผนกของคุณ');
-}
-
-function openModBoardFromHome() {
-  state.modActionFilter = 'open';
-  syncModActionFilterChips();
-  openTaskPreset('modDept');
+function getHomeScopedTasks(tasks) {
+  if (isDepartmentStaff()) return tasks.filter((task) => task.department === state.currentUser.department);
+  if (isDepartmentManager()) return tasks.filter((task) => task.department === state.currentUser.department);
+  if (isFODispatcher() || isCGM()) return tasks;
+  return getVisibleTasks(tasks);
 }
 
 function renderRecentActivity(tasks, preset = 'departmentRecent') {
@@ -832,179 +898,121 @@ function renderRecentActivity(tasks, preset = 'departmentRecent') {
 function getHomeConfig() {
   const department = state.currentUser?.department;
   const base = {
-    tasksButtonLabel: `ดูงาน ${thDepartment(department)}`,
-    activityTitle: `อัปเดตล่าสุด ${thDepartment(department)}`,
-    activityHint: 'ความเคลื่อนไหวล่าสุดของทีม',
+    tasksButtonLabel: 'View Tasks',
+    tasksButtonPreset: 'deptOnly',
+    activityTitle: 'Recent Activity',
+    activityHint: 'Latest updates',
     activityPreset: 'departmentRecent',
     sections: []
   };
 
-  if (isSupervisor()) {
+  if (isFODispatcher()) {
+    const dor = isDOR();
     return {
       ...base,
-      tasksButtonLabel: `ดูคิวงานทีม ${thDepartment(department)}`,
-      activityTitle: `อัปเดตทีม ${thDepartment(department)} ล่าสุด`,
-      activityHint: 'ภาระงานทีมและรายการติดตามของหัวหน้างาน',
+      tasksButtonLabel: dor ? 'Open Hotel Task Board' : 'Open Hotel Tasks',
+      tasksButtonPreset: 'hotelAllOpen',
+      activityTitle: dor ? 'FO / Room Division Follow-up' : 'My Dispatch Activity',
+      activityHint: dor ? 'Monitor tasks opened by FO and room division' : 'Tasks opened and followed by this account',
+      activityPreset: dor ? 'foDispatchRecent' : 'createdByMe',
       sections: [
         {
-          title: 'งานใหม่ / ยังไม่มอบหมาย',
-          hint: 'งานใหม่ที่รอหัวหน้ามอบหมาย',
-          buttonLabel: 'เปิดคิวงาน',
-          preset: 'supervisorNewUnassigned',
-          emptyTitle: 'ไม่มีงานใหม่ที่ยังไม่มอบหมาย',
-          emptyDescription: 'คำขอใหม่ทั้งหมดมีผู้รับผิดชอบแล้ว'
+          title: dor ? 'FO Opened Tasks' : 'Tasks Opened by Me',
+          hint: dor ? 'All requests created by FO / DOR' : 'Track every request you dispatched to other departments',
+          buttonLabel: 'Open Board',
+          preset: dor ? 'foOpenedActive' : 'openedByMeActive',
+          emptyTitle: 'No open dispatch task',
+          emptyDescription: 'There is no active task opened from FO right now.'
         },
         {
-          title: 'งานทีมที่กำลังดำเนินการ',
-          hint: 'งานที่รับแล้วและกำลังทำของทีมคุณ',
-          buttonLabel: 'ดูงานทีม',
-          preset: 'supervisorTeamActive',
-          emptyTitle: 'ไม่มีงานทีมที่กำลังเดินอยู่',
-          emptyDescription: 'ตอนนี้ทีมยังไม่มีงานที่กำลังดำเนินการ'
+          title: 'Done Waiting FO Close',
+          hint: 'Departments finished the job and sent it back to FO for closure',
+          buttonLabel: 'Open Done',
+          preset: dor ? 'doneWaitingFO' : 'doneWaitingMeClose',
+          emptyTitle: 'Nothing waiting for FO close',
+          emptyDescription: 'No completed task is waiting for FO confirmation.'
         },
         {
-          title: 'ฉันเป็นผู้มอบหมาย / เกินเวลา',
-          hint: 'ติดตามงานที่สั่งและงานเร่งด่วน',
-          buttonLabel: 'เปิดรายการติดตาม',
-          preset: 'supervisorAssignedOrOverdue',
-          emptyTitle: 'ไม่มีรายการติดตามของหัวหน้า',
-          emptyDescription: 'ไม่มีงานเกินเวลาและไม่มีงานที่บัญชีนี้กำลังติดตาม'
+          title: 'Urgent from MOD',
+          hint: 'Urgent MOD findings across the hotel',
+          buttonLabel: 'Open MOD',
+          preset: 'modUrgentHotel',
+          emptyTitle: 'No urgent MOD item',
+          emptyDescription: 'There is no urgent MOD-driven task right now.'
         }
       ]
     };
   }
 
-  if (department === 'FO') {
+  if (isDepartmentManager()) {
     return {
       ...base,
-      tasksButtonLabel: 'ดูงาน FO',
-      activityTitle: 'Latest FO Updates',
+      tasksButtonLabel: `Open ${department} Board`,
+      tasksButtonPreset: 'deptBoard',
+      activityTitle: `${department} Team Updates`,
+      activityHint: 'Live activity from your department team',
+      activityPreset: 'departmentRecent',
       sections: [
         {
-          title: 'ต้องติดตาม',
-          hint: 'งานที่ FO เปิดหรือกำลังรอ FO ติดตาม',
-          buttonLabel: 'เปิดรายการติดตาม',
-          preset: 'foFollowUp',
-          emptyTitle: 'ตอนนี้ไม่มีงานที่ต้องติดตาม',
-          emptyDescription: 'คิวติดตามของ FO ว่างอยู่'
+          title: `${department} Open Board`,
+          hint: 'All open work orders for your department',
+          buttonLabel: 'Open Board',
+          preset: 'deptBoard',
+          emptyTitle: `No open ${department} task`,
+          emptyDescription: 'Your department queue is currently clear.'
         },
         {
-          title: 'งานที่ฉันเพิ่งเปิด',
-          hint: 'งานล่าสุดที่เปิดโดยบัญชีนี้',
-          buttonLabel: 'ดูงานของฉัน',
-          preset: 'createdByMe',
-          emptyTitle: 'ยังไม่มีงานล่าสุด',
-          emptyDescription: 'บัญชีนี้ยังไม่ได้เปิดงาน'
+          title: 'Assigned / In Progress',
+          hint: 'Work already delegated to your team',
+          buttonLabel: 'Open Team',
+          preset: 'deptAssignedActive',
+          emptyTitle: 'No active delegated work',
+          emptyDescription: 'No assigned or in-progress task in your department now.'
         },
         {
-          title: 'Urgent / Overdue',
-          hint: 'งานที่เกี่ยวกับแขกและควรเร่งแก้ไข',
-          buttonLabel: 'ดูงานด่วน',
-          preset: 'foUrgentOverdue',
-          emptyTitle: 'ไม่มีงาน FO ด่วนตอนนี้',
-          emptyDescription: 'ตอนนี้ FO ไม่มีงานด่วนหรือเกินเวลา'
+          title: 'Urgent from MOD',
+          hint: 'MOD findings assigned to your department',
+          buttonLabel: 'Open MOD',
+          preset: 'modUrgentDept',
+          emptyTitle: 'No urgent MOD task',
+          emptyDescription: 'No urgent MOD item in your department queue.'
         }
       ]
     };
   }
 
-  if (department === 'HK') {
+  if (isDepartmentStaff()) {
     return {
       ...base,
-      tasksButtonLabel: 'ดูงาน HK',
-      activityTitle: 'Latest HK Updates',
+      tasksButtonLabel: 'Open My Assigned Tasks',
+      tasksButtonPreset: 'mineActive',
+      activityTitle: `${department} Work Updates`,
+      activityHint: 'Only tasks assigned to your name',
+      activityPreset: 'mineActive',
       sections: [
         {
-          title: 'งานใหม่ของ HK',
-          hint: 'คำขอใหม่ที่รอฝ่ายแม่บ้าน',
-          buttonLabel: 'ดูงานใหม่',
-          preset: 'deptNew',
-          emptyTitle: 'ไม่มีงาน HK ใหม่',
-          emptyDescription: 'ไม่มีคำขอใหม่ของแม่บ้านในคิว'
+          title: 'Assigned to Me',
+          hint: 'Tasks with your name as owner',
+          buttonLabel: 'Open Mine',
+          preset: 'mineActive',
+          emptyTitle: 'No task assigned to you',
+          emptyDescription: 'Your queue is clear at the moment.'
         },
         {
-          title: 'งานของฉันที่กำลังทำ',
-          hint: 'งานที่ฉันกำลังดำเนินการอยู่',
-          buttonLabel: 'ดูงานของฉัน',
-          preset: 'myInProgress',
-          emptyTitle: 'ยังไม่มีงานที่กำลังทำ',
-          emptyDescription: 'คุณยังไม่มีงาน HK ที่กำลังดำเนินการ'
+          title: `${department} Board`,
+          hint: 'Department-wide board for visibility',
+          buttonLabel: 'Open Dept',
+          preset: 'deptOpen',
+          emptyTitle: `No active ${department} task`,
+          emptyDescription: 'No active department task is visible now.'
         },
         {
-          title: 'Urgent / Overdue',
-          hint: 'งานเร่งด่วนที่ควรปิดให้เร็ว',
-          buttonLabel: 'ดูงานด่วน',
-          preset: 'deptUrgentOverdue',
-          emptyTitle: 'ไม่มีงาน HK ด่วน',
-          emptyDescription: 'คิวงาน HK อยู่ในระดับปกติ'
-        }
-      ]
-    };
-  }
-
-  if (department === 'Engineering') {
-    return {
-      ...base,
-      tasksButtonLabel: 'ดูงานวิศวกรรม',
-      activityTitle: 'Latest Engineering Updates',
-      sections: [
-        {
-          title: 'งานซ่อมด่วน',
-          hint: 'จัดลำดับงานวิศวกรรมเร่งด่วนก่อน',
-          buttonLabel: 'ดูงานซ่อม',
-          preset: 'engUrgentRepairs',
-          emptyTitle: 'ไม่มีงานซ่อมด่วน',
-          emptyDescription: 'ตอนนี้ไม่มีงานซ่อมด่วน'
-        },
-        {
-          title: 'งานของฉันที่กำลังทำ',
-          hint: 'งานซ่อมที่มอบหมายให้ฉัน',
-          buttonLabel: 'ดูงานของฉัน',
-          preset: 'myInProgress',
-          emptyTitle: 'ไม่มีงานวิศวกรรมที่กำลังดำเนินการ',
-          emptyDescription: 'คิวงานซ่อมของคุณว่างอยู่'
-        },
-        {
-          title: 'งานวิศวกรรมใหม่ / เกินเวลา',
-          hint: 'คำขอใหม่และรายการเกินเวลา',
-          buttonLabel: 'เปิดคิวงาน',
-          preset: 'engNewOrOverdue',
-          emptyTitle: 'ไม่มีงานวิศวกรรมใหม่หรือเกินเวลา',
-          emptyDescription: 'คิวงานวิศวกรรมอยู่ในระดับสมดุล'
-        }
-      ]
-    };
-  }
-
-  if (department === 'FB') {
-    return {
-      ...base,
-      tasksButtonLabel: 'ดูงาน FB',
-      activityTitle: 'Latest FB Updates',
-      sections: [
-        {
-          title: 'งานใหม่ของ FB',
-          hint: 'คำขอใหม่สำหรับทีมอาหารและเครื่องดื่ม',
-          buttonLabel: 'ดูงานใหม่',
-          preset: 'deptNew',
-          emptyTitle: 'ไม่มีคำขอ FB ใหม่',
-          emptyDescription: 'ตอนนี้ไม่มีคำขอใหม่ของ FB'
-        },
-        {
-          title: 'งาน VIP',
-          hint: 'งานรับแขก VIP และงานจัดเตรียมพิเศษ',
-          buttonLabel: 'ดูงาน VIP',
-          preset: 'fbVip',
-          emptyTitle: 'ตอนนี้ไม่มีงาน VIP',
-          emptyDescription: 'ตอนนี้ไม่มีงานจัดเตรียมหรือคำขอพิเศษ VIP'
-        },
-        {
-          title: 'งานของฉันที่กำลังทำ / Overdue',
-          hint: 'งานที่กำลังทำและงานที่ควรเร่งติดตาม',
-          buttonLabel: 'ดูงานที่กำลังทำ',
-          preset: 'fbMyInProgressOrOverdue',
-          emptyTitle: 'ไม่มีงาน FB ที่ต้องติดตาม',
-          emptyDescription: 'คิวงาน FB ของคุณว่างอยู่'
+          title: 'Urgent from MOD',
+          hint: 'Important MOD findings for your department',
+          buttonLabel: 'Open MOD',
+          preset: 'modUrgentDept',
+          emptyTitle: 'No urgent MOD item',
+          emptyDescription: 'No urgent MOD task for your department now.'
         }
       ]
     };
@@ -1013,24 +1021,9 @@ function getHomeConfig() {
   return {
     ...base,
     sections: [
-      {
-        title: 'Need Attention',
-        hint: 'งานเปิดอยู่ของแผนกนี้',
-        buttonLabel: 'เปิดคิวงาน',
-        preset: 'deptOpen'
-      },
-      {
-        title: 'งานของฉันที่กำลังทำ',
-        hint: 'Active tasks assigned to me',
-        buttonLabel: 'ดูงานของฉัน',
-        preset: 'myInProgress'
-      },
-      {
-        title: 'Urgent / Overdue',
-        hint: 'รายการที่ควรสนใจก่อน',
-        buttonLabel: 'ดูงานด่วน',
-        preset: 'deptUrgentOverdue'
-      }
+      { title: 'Need Attention', hint: 'Open tasks for this department', buttonLabel: 'Open Queue', preset: 'deptOpen' },
+      { title: 'My In Progress', hint: 'Active tasks assigned to me', buttonLabel: 'Open Mine', preset: 'mineActive' },
+      { title: 'Urgent / Overdue', hint: 'Items requiring attention first', buttonLabel: 'Open Urgent', preset: 'deptUrgentOverdue' }
     ]
   };
 }
@@ -1039,34 +1032,30 @@ function getHomeTasksByPreset(tasks, preset) {
   const department = state.currentUser?.department;
   const mine = (task) => task.assignedToName === state.currentUser?.name;
   const openedByMe = (task) => task.openedByName === state.currentUser?.name;
-  const assignedByMe = (task) => task.assignedByName === state.currentUser?.name;
   const deptTask = (task) => task.department === department;
   const activeTask = (task) => !['Done', 'Closed'].includes(task.status);
-  const teamActiveTask = (task) => deptTask(task) && ['Accepted', 'In Progress'].includes(task.status);
   const urgentTask = (task) => ['Urgent', 'High'].includes(task.priority) || isTaskOverdue(task);
-  const vipTask = (task) => /vip|amenity|welcome/i.test(`${task.subject} ${task.detail} ${task.location}`);
+  const modTask = (task) => task.sourceType === 'MOD';
+  const openedByFO = (task) => task.openedByDepartment === 'FO';
 
   const presets = {
     all: tasks,
     deptOnly: tasks.filter((task) => deptTask(task)),
     deptOpen: tasks.filter((task) => deptTask(task) && activeTask(task)),
-    modDept: tasks.filter((task) => deptTask(task) && activeTask(task) && isTaskFromMod(task)),
-    modMine: tasks.filter((task) => deptTask(task) && activeTask(task) && isTaskFromMod(task) && (mine(task) || !task.assignedToName)),
-    modHighRisk: tasks.filter((task) => deptTask(task) && activeTask(task) && isTaskFromMod(task) && urgentTask(task)),
-    deptNew: tasks.filter((task) => deptTask(task) && task.status === 'New'),
-    myInProgress: tasks.filter((task) => mine(task) && task.status === 'In Progress'),
+    deptBoard: tasks.filter((task) => deptTask(task)).sort(sortTasks),
+    mineActive: tasks.filter((task) => mine(task) && activeTask(task)),
     createdByMe: tasks.filter((task) => openedByMe(task)),
-    supervisorNewUnassigned: tasks.filter((task) => deptTask(task) && task.status === 'New' && !task.assignedToName),
-    supervisorTeamActive: tasks.filter((task) => teamActiveTask(task)),
-    supervisorAssignedOrOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && (assignedByMe(task) || urgentTask(task))),
+    openedByMeActive: tasks.filter((task) => openedByMe(task) && activeTask(task)),
+    hotelAllOpen: tasks.filter((task) => activeTask(task)),
+    foOpenedActive: tasks.filter((task) => openedByFO(task) && activeTask(task)),
+    doneWaitingFO: tasks.filter((task) => task.status === 'Done' && openedByFO(task)),
+    doneWaitingMeClose: tasks.filter((task) => task.status === 'Done' && openedByMe(task)),
+    deptAssignedActive: tasks.filter((task) => deptTask(task) && ['Accepted', 'In Progress', 'Done'].includes(task.status)),
+    modUrgentDept: tasks.filter((task) => deptTask(task) && modTask(task) && activeTask(task) && urgentTask(task)),
+    modUrgentHotel: tasks.filter((task) => modTask(task) && activeTask(task) && urgentTask(task)),
     deptUrgentOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && urgentTask(task)),
-    foFollowUp: tasks.filter((task) => activeTask(task) && (task.openedByDepartment === 'FO' || mine(task) || task.department === 'FO')),
-    foUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task) && (task.openedByDepartment === 'FO' || task.department === 'FO')),
-    engUrgentRepairs: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (urgentTask(task) || task.category === 'Repair')),
-    engNewOrOverdue: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (task.status === 'New' || isTaskOverdue(task))),
-    fbVip: tasks.filter((task) => task.department === 'FB' && activeTask(task) && vipTask(task)),
-    fbMyInProgressOrOverdue: tasks.filter((task) => task.department === 'FB' && activeTask(task) && (mine(task) || isTaskOverdue(task) || task.status === 'In Progress')),
-    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department)
+    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department),
+    foDispatchRecent: tasks.filter((task) => openedByFO(task) || task.openedByName === state.currentUser?.name)
   };
 
   return presets[preset] || presets.all;
@@ -1078,12 +1067,18 @@ function getHomeActivityEntries(tasks, preset) {
 }
 
 function openDepartmentTasksFromHome() {
-  openTaskPreset('deptOnly');
+  const preset = getHomeConfig().tasksButtonPreset || 'deptOnly';
+  if (isMOD()) {
+    showPage('mod');
+    return;
+  }
+  openTaskPreset(preset);
 }
 
 function openTaskPreset(preset) {
   resetTaskListControls();
-  setTaskContext(preset);
+  const safePreset = isDepartmentStaff() && preset !== 'mineActive' ? 'mineActive' : preset;
+  setTaskContext(safePreset);
   showPage('tasks');
 }
 
@@ -1114,35 +1109,31 @@ function getTaskContextFilteredTasks(tasks) {
 function getTaskContextLabel() {
   const labels = {
     all: '',
-    deptOnly: `งาน ${thDepartment(state.currentUser?.department || 'Department')}`,
-    deptOpen: `งานเปิดอยู่ / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    modDept: `บอร์ดงานจาก MOD / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    modMine: 'รายการ MOD ที่เกี่ยวข้องกับฉัน',
-    modHighRisk: `MOD เสี่ยงสูง / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    deptNew: `งานใหม่ / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    myInProgress: 'งานของฉันที่กำลังทำ',
-    createdByMe: 'งานที่ฉันเพิ่งเปิด',
-    supervisorNewUnassigned: `งานใหม่ / ยังไม่มอบหมาย / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    supervisorTeamActive: `งานทีมที่กำลังดำเนินการ / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    supervisorAssignedOrOverdue: 'ฉันเป็นผู้มอบหมาย / เกินเวลา',
-    deptUrgentOverdue: `งานด่วน / เกินเวลา / ${thDepartment(state.currentUser?.department || 'Department')}`,
-    foFollowUp: 'FO ต้องติดตาม',
-    foUrgentOverdue: 'FO ด่วน / เกินเวลา',
-    engUrgentRepairs: 'งานซ่อมด่วนวิศวกรรม',
-    engNewOrOverdue: 'วิศวกรรม งานใหม่ / เกินเวลา',
-    fbVip: 'FB งาน VIP',
-    fbMyInProgressOrOverdue: 'FB งานที่กำลังทำ / เกินเวลา'
+    deptOnly: `${state.currentUser?.department || 'Department'} tasks`,
+    deptOpen: `${state.currentUser?.department || 'Department'} open tasks`,
+    deptBoard: `${state.currentUser?.department || 'Department'} board`,
+    mineActive: 'Tasks assigned to me',
+    createdByMe: 'Recently created by me',
+    openedByMeActive: 'Tasks opened by me',
+    hotelAllOpen: 'All hotel open tasks',
+    foOpenedActive: 'FO opened tasks',
+    doneWaitingFO: 'Done / waiting FO close',
+    doneWaitingMeClose: 'Done / waiting my close',
+    deptAssignedActive: `${state.currentUser?.department || 'Department'} assigned / active`,
+    modUrgentDept: `${state.currentUser?.department || 'Department'} urgent from MOD`,
+    modUrgentHotel: 'Urgent from MOD / hotel-wide',
+    deptUrgentOverdue: `${state.currentUser?.department || 'Department'} urgent / overdue`
   };
   return labels[state.taskContext] || '';
 }
 
 function getTaskPageSubtitle() {
   const label = getTaskContextLabel();
-  return label ? `กรองและติดตามงาน / ${label}` : 'กรองและติดตามงาน';
+  return label ? `Filter and track work orders / ${label}` : 'Filter and track work orders';
 }
 
 function renderDashboardPage() {
-  if (!isManager()) return;
+  if (!isCGM()) return;
   const tasks = getVisibleTasks(getTasks());
   const openTasks = tasks.filter((t) => t.status !== 'Closed');
   const todayKey = new Date().toDateString();
@@ -1185,7 +1176,6 @@ function renderDashboardPage() {
 }
 
 function renderTaskList() {
-  renderModActionBoard();
   renderSupervisorTaskBoard();
   const tasks = getTaskListResults();
   const contextLabel = getTaskContextLabel();
@@ -1197,161 +1187,9 @@ function renderTaskList() {
 }
 
 
-
-function renderModActionBoard() {
-  if (!els.modActionBoard) return;
-  if (!shouldShowModActionBoard()) {
-    els.modActionBoard.classList.add('hidden');
-    return;
-  }
-
-  const reports = getFilteredModActionReports();
-  const allReports = getVisibleModActionReports();
-  const department = state.currentUser?.department || 'Department';
-  els.modActionBoard.classList.remove('hidden');
-  if (els.modActionBoardHint) {
-    els.modActionBoardHint.textContent = isSupervisor()
-      ? `รายการจาก MOD ของแผนก ${thDepartment(department)} สำหรับทีมคุณ`
-      : `รายการจาก MOD ของแผนก ${thDepartment(department)} ในความรับผิดชอบของคุณ`;
-  }
-
-  const assignedToMe = allReports.filter((report) => {
-    const linkedTask = getLinkedTaskForModReport(report);
-    return linkedTask?.assignedToName === state.currentUser?.name && !['Done', 'Closed'].includes(linkedTask.status);
-  }).length;
-
-  els.modActionSummary.innerHTML = [
-    { label: 'ประเด็นเปิดอยู่', value: allReports.filter((report) => !['Resolved', 'Closed'].includes(report.status)).length },
-    { label: 'เสี่ยงสูง', value: allReports.filter((report) => ['High', 'Urgent'].includes(report.priority) && !['Resolved', 'Closed'].includes(report.status)).length },
-    { label: 'เชื่อมกับงานแล้ว', value: allReports.filter((report) => !!getLinkedTaskForModReport(report)).length },
-    { label: 'มอบหมายให้ฉัน', value: assignedToMe }
-  ].map((card) => `
-    <article class="card stat-card mod-action-stat">
-      <span class="stat-card__label">${escapeHtml(card.label)}</span>
-      <strong class="stat-card__value">${card.value}</strong>
-    </article>
-  `).join('');
-
-  els.modActionCount.textContent = `${reports.length} รายการ`;
-  els.modActionList.innerHTML = reports.length
-    ? reports.map((report) => modActionReportCardHTML(report)).join('')
-    : emptyStateHTML('ไม่พบรายการ MOD ที่ตรงกับตัวกรอง', 'ลองเปลี่ยนตัวกรองหรือเปิดดูงานของแผนกทั้งหมด');
-  syncModActionFilterChips();
-}
-
-function syncModActionFilterChips() {
-  if (!els.modActionFilters) return;
-  Array.from(els.modActionFilters.querySelectorAll('[data-mod-board]')).forEach((chip) => {
-    chip.classList.toggle('is-active', chip.dataset.modBoard === state.modActionFilter);
-  });
-}
-
-function getVisibleModActionReports() {
-  const department = state.currentUser?.department;
-  if (!department || !shouldShowModActionBoard()) return [];
-  return getModReports()
-    .filter((report) => report.department === department)
-    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
-}
-
-function getFilteredModActionReports() {
-  return getVisibleModActionReports().filter(matchesModActionFilter);
-}
-
-function matchesModActionFilter(report) {
-  const linkedTask = getLinkedTaskForModReport(report);
-  switch (state.modActionFilter) {
-    case 'open':
-      return !['Resolved', 'Closed'].includes(report.status);
-    case 'high':
-      return ['High', 'Urgent'].includes(report.priority) && !['Resolved', 'Closed'].includes(report.status);
-    case 'media':
-      return (report.attachments || []).length > 0;
-    case 'mine':
-      return linkedTask?.assignedToName === state.currentUser?.name;
-    default:
-      return true;
-  }
-}
-
-function getLinkedTaskForModReport(report) {
-  if (!report?.linkedTaskId && !report?.linkedTaskTicketNo) return null;
-  return getTasks().find((task) => (
-    (report.linkedTaskId && (task.id === report.linkedTaskId || task.ticketNo === report.linkedTaskId))
-    || (report.linkedTaskTicketNo && task.ticketNo === report.linkedTaskTicketNo)
-  )) || null;
-}
-
-function isTaskFromMod(task) {
-  if (!task) return false;
-  if (task.sourceType === 'MOD') return true;
-  if (String(task.sourceReference || '').startsWith('MOD-')) return true;
-  return getModReports().some((report) => (
-    report.linkedTaskId && (report.linkedTaskId === task.id || report.linkedTaskId === task.ticketNo || report.linkedTaskTicketNo === task.ticketNo)
-  ));
-}
-
-function modActionReportCardHTML(report, options = {}) {
-  const linkedTask = getLinkedTaskForModReport(report);
-  const compact = Boolean(options.compact);
-  const assignedLabel = linkedTask?.assignedToName || 'ยังไม่มอบหมาย';
-  const actionNote = report.actionNote || 'ยังไม่มีคำสั่งแก้ไขทันที';
-  return `
-    <article class="card task-card mod-action-card${linkedTask && isTaskOverdue(linkedTask) ? ' is-overdue' : ''}">
-      <div class="task-card__top">
-        <span class="task-card__ticket">${escapeHtml(report.reportNo)}</span>
-        <span class="task-card__time">${timeAgo(report.updatedAt || report.createdAt)}</span>
-      </div>
-      <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)} / ${escapeHtml(thDepartment(report.department))}</div>
-      <h3 class="task-card__title">${escapeHtml(report.subject)}</h3>
-      <div class="task-card__badges">
-        <span class="badge badge-source-mod">MOD</span>
-        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(thPriority(report.priority))}</span>
-        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(thStatus(report.status))}</span>
-        ${linkedTask ? `<span class="badge ${statusBadgeClass(linkedTask.status)}">${escapeHtml(thStatus(linkedTask.status))}</span>` : ''}
-      </div>
-      <div class="task-card__info">
-        <span>ผู้รับผิดชอบ: ${escapeHtml(assignedLabel)}</span>
-        <span>${linkedTask ? `Task ${escapeHtml(linkedTask.ticketNo)}` : 'ยังไม่ได้เปิดงานติดตาม'}</span>
-      </div>
-      <div class="mod-action-card__note">${escapeHtml(actionNote)}</div>
-      <div class="task-card__actions">
-        ${linkedTask
-          ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(linkedTask.id)}">เปิดงาน</button>`
-          : `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">ดูบอร์ดงาน MOD</button>`}
-        ${compact
-          ? `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">เปิดบอร์ด</button>`
-          : `<button class="btn btn-secondary" type="button" data-mod-board-open="${escapeHtml(linkedTask ? 'modMine' : 'modDept')}">โฟกัสคิวงาน</button>`}
-      </div>
-    </article>
-  `;
-}
-
-function onModActionBoardFilterClick(event) {
-  const chip = event.target.closest('[data-mod-board]');
-  if (!chip) return;
-  state.modActionFilter = chip.dataset.modBoard;
-  renderModActionBoard();
-}
-
-function onModActionBoardClick(event) {
-  const taskBtn = event.target.closest('[data-task-view]');
-  if (taskBtn) {
-    openTaskDetail(taskBtn.dataset.taskView);
-    return;
-  }
-  const boardBtn = event.target.closest('[data-mod-board-open]');
-  if (!boardBtn) return;
-  openTaskPreset(boardBtn.dataset.modBoardOpen || 'modDept');
-}
-
-function shouldShowModActionBoard() {
-  return isSupervisor() || isStaff();
-}
-
 function renderSupervisorTaskBoard() {
   if (!els.supervisorBoard) return;
-  if (!isSupervisor()) {
+  if (!isDepartmentManager()) {
     els.supervisorBoard.classList.add('hidden');
     return;
   }
@@ -1373,8 +1211,8 @@ function renderSupervisorTaskBoard() {
 
 function renderSupervisorBoardSummary(tasks, department) {
   const items = [
-    { label: 'ดูงานทีม', value: tasks.filter((task) => !['Done', 'Closed'].includes(task.status)).length, tone: '' },
-    { label: 'ยังไม่มอบหมาย', value: tasks.filter((task) => task.status === 'New' && !task.assignedToName).length, tone: '' },
+    { label: 'Open Team', value: tasks.filter((task) => !['Done', 'Closed'].includes(task.status)).length, tone: '' },
+    { label: 'Unassigned', value: tasks.filter((task) => task.status === 'New' && !task.assignedToName).length, tone: '' },
     { label: 'In Progress', value: tasks.filter((task) => task.status === 'In Progress').length, tone: '' },
     { label: 'Overdue', value: tasks.filter((task) => isTaskOverdue(task)).length, tone: ' stat-card--danger' }
   ];
@@ -1390,7 +1228,7 @@ function renderSupervisorBoardSummary(tasks, department) {
 function renderSupervisorAssigneeOptions(tasks) {
   const options = [
     { value: '__ALL__', label: 'All team members' },
-    { value: '__UNASSIGNED__', label: 'ยังไม่มอบหมาย only' },
+    { value: '__UNASSIGNED__', label: 'Unassigned only' },
     { value: '__ME__', label: `Assigned to me (${state.currentUser.name})` }
   ];
   getTeamUsers(state.currentUser.department).forEach((user) => {
@@ -1443,10 +1281,10 @@ function renderSupervisorWorkloadCards(snapshot) {
 function renderSupervisorBalancePanel(snapshot) {
   if (!els.supervisorBalancePanel) return;
   const statusItems = [
-    { label: 'งานล้น', value: snapshot.overloaded.length, meta: 'ควรช่วยแบ่งเบา', band: 'overloaded' },
-    { label: 'เบา / ว่าง', value: snapshot.light.length + snapshot.available.length, meta: 'Ready for more', band: 'light' },
-    { label: 'ยังไม่มอบหมาย Queue', value: snapshot.unassignedTasks.length, meta: 'กำลังรอเจ้าของงาน', band: 'balanced' },
-    { label: 'ค่าเฉลี่ยภาระงานทีม', value: formatScore(snapshot.avgScore), meta: `${formatScore(snapshot.avgActiveCount)} active avg`, band: 'heavy' }
+    { label: 'Overloaded', value: snapshot.overloaded.length, meta: 'Needs relief', band: 'overloaded' },
+    { label: 'Light / Available', value: snapshot.light.length + snapshot.available.length, meta: 'Ready for more', band: 'light' },
+    { label: 'Unassigned Queue', value: snapshot.unassignedTasks.length, meta: 'Waiting for owner', band: 'balanced' },
+    { label: 'Team Avg Load', value: formatScore(snapshot.avgScore), meta: `${formatScore(snapshot.avgActiveCount)} active avg`, band: 'heavy' }
   ];
 
   els.supervisorBalanceStatus.innerHTML = statusItems.map((item) => `
@@ -1480,7 +1318,7 @@ function renderSupervisorBalancePanel(snapshot) {
 
   els.supervisorBalanceActions.innerHTML = `
     <button class="btn btn-primary" type="button" data-balance-action="assign-unassigned" ${assignDisabled}>Assign oldest unassigned → ${escapeHtml(suggestedTarget)}</button>
-    <button class="btn btn-secondary" type="button" data-balance-action="rebalance-one" ${moveDisabled}>ย้ายงาน 1 รายการจาก ${escapeHtml(heaviestOwner)} → ${escapeHtml(suggestedTarget)}</button>
+    <button class="btn btn-secondary" type="button" data-balance-action="rebalance-one" ${moveDisabled}>Move 1 task from ${escapeHtml(heaviestOwner)} → ${escapeHtml(suggestedTarget)}</button>
     <button class="btn btn-secondary" type="button" data-balance-action="auto-balance" ${autoDisabled}>Auto Balance 2 steps</button>
   `;
 }
@@ -1520,15 +1358,15 @@ function boardMiniCardHTML(task) {
       <h4 class="board-mini-card__title">${escapeHtml(task.subject)}</h4>
       <div class="board-mini-card__meta">
         <span>${escapeHtml(task.location)}</span>
-        <span>${escapeHtml(task.assignedToName || 'ยังไม่มอบหมาย')}</span>
+        <span>${escapeHtml(task.assignedToName || 'Unassigned')}</span>
       </div>
       <div class="board-mini-card__badges">
-        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(thPriority(task.priority))}</span>
-        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(thStatus(task.status))}</span>
+        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
+        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(task.status)}</span>
       </div>
       <div class="board-mini-card__foot">
-        <span>เปิดโดย ${escapeHtml(task.openedByDepartment)}</span>
-        <button class="btn btn-secondary board-mini-card__btn" type="button" data-task-view="${escapeHtml(task.id)}">เปิด</button>
+        <span>Opened by ${escapeHtml(task.openedByDepartment)}</span>
+        <button class="btn btn-secondary board-mini-card__btn" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>
       </div>
     </article>
   `;
@@ -1575,7 +1413,7 @@ function onSupervisorBalanceActionClick(event) {
 
   switch (button.dataset.balanceAction) {
     case 'assign-unassigned':
-      message = runAssignOldestยังไม่มอบหมาย(snapshot);
+      message = runAssignOldestUnassigned(snapshot);
       break;
     case 'rebalance-one':
       message = runRebalanceOne(snapshot);
@@ -1598,7 +1436,7 @@ function onSupervisorBoardClick(event) {
 }
 
 function resetSupervisorTaskBoardFilters(silent = false) {
-  if (!isSupervisor()) return;
+  if (!isDepartmentManager()) return;
   state.teamQuickFilter = 'all';
   state.teamAssigneeFilter = '__ALL__';
   if (els.teamQuickFilters) {
@@ -1722,11 +1560,11 @@ function classifyWorkloadBand(item, avgScore, avgActiveCount) {
 
 function getWorkloadBandLabel(bandKey) {
   return {
-    overloaded: 'งานล้น',
-    heavy: 'งานหนัก',
-    balanced: 'สมดุล',
-    light: 'เบา',
-    available: 'ว่าง'
+    overloaded: 'Overloaded',
+    heavy: 'Heavy',
+    balanced: 'Balanced',
+    light: 'Light',
+    available: 'Available'
   }[bandKey] || 'Balanced';
 }
 
@@ -1737,9 +1575,9 @@ function buildBalanceRecommendations(snapshot) {
     const task = snapshot.unassignedTasks[0];
     items.push({
       action: 'assign-unassigned',
-      title: `มอบหมายงานค้างที่เก่าที่สุดให้ ${assignTarget.user.name}`,
+      title: `Assign oldest unassigned to ${assignTarget.user.name}`,
       meta: `${task.ticketNo} · ${task.subject}`,
-      buttonLabel: 'มอบหมายทันที'
+      buttonLabel: 'Assign now'
     });
   }
 
@@ -1747,18 +1585,18 @@ function buildBalanceRecommendations(snapshot) {
   if (movePlan) {
     items.push({
       action: 'rebalance-one',
-      title: `ย้ายงาน 1 รายการจาก ${movePlan.from.user.name} to ${movePlan.to.user.name}`,
+      title: `Move 1 task from ${movePlan.from.user.name} to ${movePlan.to.user.name}`,
       meta: `${movePlan.task.ticketNo} · ${movePlan.task.subject}`,
-      buttonLabel: 'ย้ายเลย'
+      buttonLabel: 'Move now'
     });
   }
 
   if (getAutoBalancePlan(snapshot, 2).steps.length) {
     items.push({
       action: 'auto-balance',
-      title: 'กระจายคิวงานอัตโนมัติที่แนะนำ',
-      meta: 'ทำการกระจายงานแบบปลอดภัยสูงสุด 2 ขั้น พร้อมบันทึกลงไทม์ไลน์',
-      buttonLabel: 'รัน 2 ขั้น'
+      title: 'Auto balance recommended queue',
+      meta: 'Runs up to 2 safe balancing steps and keeps a full timeline log.',
+      buttonLabel: 'Run 2 steps'
     });
   }
 
@@ -1811,24 +1649,24 @@ function simulateAssignment(tasks, taskId, newOwnerName) {
   return tasks.map((task) => task.id === taskId || task.ticketNo === taskId ? { ...task, assignedToName: newOwnerName, status: task.status === 'New' ? 'Accepted' : task.status } : task);
 }
 
-function runAssignOldestยังไม่มอบหมาย(snapshot) {
+function runAssignOldestUnassigned(snapshot) {
   const task = snapshot.unassignedTasks[0];
   const target = pickBestTargetMetric(snapshot);
-  if (!task || !target) return 'ตอนนี้ยังไม่มีงานค้างที่พร้อมกระจาย';
+  if (!task || !target) return 'No unassigned task can be balanced right now.';
   performAssignment(task.id, target.user, 'Supervisor workload balancing / oldest unassigned task auto-assigned.');
   return `${task.ticketNo} assigned to ${target.user.name} from the unassigned queue.`;
 }
 
 function runRebalanceOne(snapshot) {
   const plan = getRebalanceMovePlan(snapshot);
-  if (!plan) return 'ตอนนี้ยังไม่มีการย้ายงานที่ปลอดภัย';
+  if (!plan) return 'No safe rebalance move is available right now.';
   performAssignment(plan.task.id, plan.to.user, `Supervisor workload balancing / moved from ${plan.from.user.name} to ${plan.to.user.name}.`);
   return `${plan.task.ticketNo} moved from ${plan.from.user.name} to ${plan.to.user.name}.`;
 }
 
 function runAutoBalance(snapshot, maxSteps = 2) {
   const plan = getAutoBalancePlan(snapshot, maxSteps);
-  if (!plan.steps.length) return 'คิวงานของทีมสมดุลอยู่แล้วในตอนนี้';
+  if (!plan.steps.length) return 'Team queue is already balanced enough for now.';
 
   const messages = [];
   plan.steps.forEach((step, index) => {
@@ -1871,7 +1709,7 @@ function matchesSupervisorAssigneeFilter(task) {
 }
 
 function getTeamUsers(department) {
-  return users.filter((user) => user.department === department && user.role !== 'Manager');
+  return users.filter((user) => user.department === department && isAssignableRole(user.role));
 }
 
 function getTeamAssigneeLabel() {
@@ -1894,9 +1732,9 @@ function renderTaskDetail() {
   const task = getTaskById(state.currentTaskId);
   if (!task) {
     els.detailLocation.textContent = '-';
-    els.detailSubject.textContent = 'ไม่พบงาน';
+    els.detailSubject.textContent = 'Task not found';
     els.detailTicket.textContent = '-';
-    els.detailDescription.textContent = 'งานนี้อาจถูกลบออกแล้ว';
+    els.detailDescription.textContent = 'This task may have been removed.';
     els.detailDepartment.textContent = '-';
     els.detailCategory.textContent = '-';
     els.detailOpenedBy.textContent = '-';
@@ -1909,22 +1747,22 @@ function renderTaskDetail() {
     els.detailPriorityBadge.textContent = '-';
     els.detailStatusBadge.className = 'badge badge-status-new';
     els.detailStatusBadge.textContent = '-';
-    els.detailActions.innerHTML = '<div class="helper-text">ไม่มีการดำเนินการที่ใช้ได้</div>';
+    els.detailActions.innerHTML = '<div class="helper-text">No action available.</div>';
     els.detailAssignCard.classList.add('hidden');
     els.detailMediaCard.classList.add('hidden');
     els.detailMediaList.innerHTML = '';
     els.detailNoteInput.value = '';
-    els.detailTimeline.innerHTML = emptyStateHTML('ไม่พบงาน', 'งานนี้อาจถูกลบออกแล้ว');
+    els.detailTimeline.innerHTML = emptyStateHTML('Task not found', 'This task may have been removed.');
     return;
   }
 
-  els.detailLocation.textContent = `${task.location} / ${thDepartment(task.department)}`;
+  els.detailLocation.textContent = `${task.location} / ${task.department}`;
   els.detailSubject.textContent = task.subject;
   els.detailTicket.textContent = task.ticketNo;
-  els.detailDescription.textContent = task.detail || 'ยังไม่มีรายละเอียด';
+  els.detailDescription.textContent = task.detail || 'No detail provided.';
   els.detailDepartment.textContent = task.department;
   els.detailCategory.textContent = task.category;
-  els.detailOpenedBy.textContent = `${task.openedByName} / ${thDepartment(task.openedByDepartment)}`;
+  els.detailOpenedBy.textContent = `${task.openedByName} / ${task.openedByDepartment}`;
   els.detailAssignedTo.textContent = task.assignedToName || '-';
   els.detailAssignedBy.textContent = task.assignedByName ? `${task.assignedByName} / ${task.assignedByDepartment || '-'}` : '-';
   els.detailSource.textContent = task.sourceType ? `${task.sourceType}${task.sourceReference ? ` / ${task.sourceReference}` : ''}` : '-';
@@ -1939,15 +1777,16 @@ function renderTaskDetail() {
   const actions = getDetailActions(task);
   els.detailActions.innerHTML = actions.length
     ? actions.map((action) => `<button class="btn ${action.primary ? 'btn-primary' : 'btn-secondary'} ${action.full ? 'btn-full' : ''}" type="button" data-detail-action="${action.value}">${action.label}</button>`).join('')
-    : '<div class="helper-text">บทบาทนี้ยังไม่มีปุ่มดำเนินการสำหรับสถานะปัจจุบัน</div>';
+    : '<div class="helper-text">No direct action available for this user in current status.</div>';
 
   renderDetailAssignmentState(task);
+  renderDetailWorkUploadCard(task);
   renderTaskMedia(task);
 
   const logs = [...(task.logs || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   els.detailTimeline.innerHTML = logs.length
     ? logs.map((log) => timelineItemHTML(log)).join('')
-    : emptyStateHTML('ยังไม่มีไทม์ไลน์', 'อัปเดตจะแสดงที่นี่');
+    : emptyStateHTML('No timeline yet', 'Updates will appear here.');
 }
 
 function renderHistoryPage() {
@@ -1960,12 +1799,12 @@ function renderHistoryPage() {
 
 function renderReportsPage() {
   if (!canViewReports()) {
-    els.reportResults.innerHTML = emptyStateHTML('Manager / MOD only', 'This page is available for manager-level roles.');
-    if (els.reportDepartmentChart) els.reportDepartmentChart.innerHTML = chartEmptyStateHTML('Manager / MOD only');
-    if (els.reportTrendChart) els.reportTrendChart.innerHTML = chartEmptyStateHTML('Manager / MOD only');
-    if (els.reportPriorityChart) els.reportPriorityChart.innerHTML = chartEmptyStateHTML('Manager / MOD only');
+    els.reportResults.innerHTML = emptyStateHTML('CGM only', 'This page is available for CGM role only.');
+    if (els.reportDepartmentChart) els.reportDepartmentChart.innerHTML = chartEmptyStateHTML('CGM only');
+    if (els.reportTrendChart) els.reportTrendChart.innerHTML = chartEmptyStateHTML('CGM only');
+    if (els.reportPriorityChart) els.reportPriorityChart.innerHTML = chartEmptyStateHTML('CGM only');
     if (els.reportPrioritySummary) els.reportPrioritySummary.innerHTML = '';
-    if (els.reportStatusDonut) els.reportStatusDonut.innerHTML = chartEmptyStateHTML('Manager / MOD only');
+    if (els.reportStatusDonut) els.reportStatusDonut.innerHTML = chartEmptyStateHTML('CGM only');
     if (els.reportStatusLegend) els.reportStatusLegend.innerHTML = '';
     return;
   }
@@ -2493,7 +2332,7 @@ function formatFileSize(size) {
 
 async function submitModReport() {
   if (!canAccessMod()) {
-    alert('หน้านี้ใช้ได้เฉพาะ MOD หรือผู้จัดการ');
+    alert('This page is available for MOD / CGM role.');
     return;
   }
 
@@ -2507,7 +2346,7 @@ async function submitModReport() {
   const actionNote = document.getElementById('mod-action-note').value.trim();
 
   if (!area || !location || !department || !priority || !subject) {
-    alert('กรุณากรอกข้อมูลที่จำเป็น: พื้นที่ จุดที่พบ แผนกรับผิดชอบ ระดับความสำคัญ และหัวข้อ');
+    alert('Please fill required fields: area, location, owner department, severity, and title.');
     return;
   }
 
@@ -2602,8 +2441,8 @@ function resetModForm(resetSelection = true) {
 
 function renderModPage() {
   if (!canAccessMod()) {
-    els.modReportsList.innerHTML = emptyStateHTML('MOD access only', 'This page is available for MOD / Manager role.');
-    els.modDetailPanel.innerHTML = emptyStateHTML('No access', 'Please login with MOD or manager-level account.');
+    els.modReportsList.innerHTML = emptyStateHTML('MOD access only', 'This page is available for MOD / CGM role.');
+    els.modDetailPanel.innerHTML = emptyStateHTML('No access', 'Please login with MOD or CGM account.');
     els.modSummaryGrid.innerHTML = '';
     return;
   }
@@ -2621,8 +2460,8 @@ function renderModSummary() {
   const mediaCount = reports.filter((item) => (item.attachments || []).length > 0).length;
   const todayCount = reports.filter((item) => new Date(item.createdAt).toDateString() === todayKey).length;
   els.modSummaryGrid.innerHTML = [
-    { label: 'ประเด็นเปิดอยู่', value: openCount },
-    { label: 'เสี่ยงสูง', value: highCount },
+    { label: 'Open Findings', value: openCount },
+    { label: 'High Risk', value: highCount },
     { label: 'With Media', value: mediaCount },
     { label: 'Today Submitted', value: todayCount }
   ].map((card) => `
@@ -2666,16 +2505,16 @@ function modReportCardHTML(report) {
       <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)}</div>
       <h3 class="task-card__title">${escapeHtml(report.subject)}</h3>
       <div class="task-card__badges">
-        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(thPriority(report.priority))}</span>
-        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(thStatus(report.status))}</span>
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
       </div>
       <div class="task-card__info">
-        <span>${escapeHtml(thDepartment(report.department))} / ${escapeHtml(thCategory(report.category))}</span>
-        <span>ไฟล์แนบ: ${(report.attachments || []).length}</span>
+        <span>${escapeHtml(report.department)} / ${escapeHtml(report.category)}</span>
+        <span>Media: ${(report.attachments || []).length}</span>
       </div>
       <div class="task-card__actions">
-        <button class="btn btn-secondary" type="button" data-mod-open="${escapeHtml(report.id)}">เปิด</button>
-        ${report.linkedTaskId ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">View Task</button>` : `<button class="btn btn-primary" type="button" data-mod-open="${escapeHtml(report.id)}">ตรวจสอบ</button>`}
+        <button class="btn btn-secondary" type="button" data-mod-open="${escapeHtml(report.id)}">Open</button>
+        ${report.linkedTaskId ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">View Task</button>` : `<button class="btn btn-primary" type="button" data-mod-open="${escapeHtml(report.id)}">Review</button>`}
       </div>
     </article>
   `;
@@ -2686,8 +2525,8 @@ function renderModReportDetail() {
   const report = reports.find((item) => item.id === state.currentModReportId) || reports[0] || null;
   if (report && !state.currentModReportId) state.currentModReportId = report.id;
   if (!report) {
-    els.modDetailHint.textContent = 'เปิดสัก 1 รายการเพื่อดูรูป/วิดีโอและการติดตาม';
-    els.modDetailPanel.innerHTML = emptyStateHTML('ยังไม่มี MOD report', 'สร้างรายการตรวจพบแรกจากฟอร์มด้านบน');
+    els.modDetailHint.textContent = 'Open one report to review media and follow-up';
+    els.modDetailPanel.innerHTML = emptyStateHTML('No MOD report yet', 'Create the first inspection finding from the form above.');
     return;
   }
   els.modDetailHint.textContent = `${report.reportNo} / ${report.department}`;
@@ -2700,50 +2539,50 @@ function renderModReportDetail() {
         <p class="task-hero__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)}</p>
       </div>
       <div class="task-card__badges">
-        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(thPriority(report.priority))}</span>
-        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(thStatus(report.status))}</span>
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
       </div>
     </div>
     <dl class="detail-list">
-      <div><dt>แผนกรับผิดชอบ</dt><dd>${escapeHtml(thDepartment(report.department))}</dd></div>
-      <div><dt>Category</dt><dd>${escapeHtml(thCategory(report.category))}</dd></div>
-      <div><dt>เปิดโดย</dt><dd>${escapeHtml(report.openedByName)} / ${escapeHtml(report.openedByDepartment)}</dd></div>
-      <div><dt>งานที่เชื่อม</dt><dd>${report.linkedTaskId ? `<button class="link-btn" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">${escapeHtml(report.linkedTaskTicketNo || 'Open task')}</button>` : '-'}</dd></div>
-      <div><dt>สร้างเมื่อ</dt><dd>${formatDateTime(report.createdAt)}</dd></div>
-      <div><dt>อัปเดตเมื่อ</dt><dd>${formatDateTime(report.updatedAt)}</dd></div>
+      <div><dt>Owner Dept</dt><dd>${escapeHtml(report.department)}</dd></div>
+      <div><dt>Category</dt><dd>${escapeHtml(report.category)}</dd></div>
+      <div><dt>Opened by</dt><dd>${escapeHtml(report.openedByName)} / ${escapeHtml(report.openedByDepartment)}</dd></div>
+      <div><dt>Linked Task</dt><dd>${report.linkedTaskId ? `<button class="link-btn" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">${escapeHtml(report.linkedTaskTicketNo || 'Open task')}</button>` : '-'}</dd></div>
+      <div><dt>Created</dt><dd>${formatDateTime(report.createdAt)}</dd></div>
+      <div><dt>Updated</dt><dd>${formatDateTime(report.updatedAt)}</dd></div>
     </dl>
     <div class="card mod-detail-block">
-      <h4 class="block-title">ประเด็นที่พบ</h4>
-      <p class="detail-description">${escapeHtml(report.detail || 'ยังไม่มีรายละเอียด')}</p>
-      <h4 class="block-title">คำสั่งแก้ไขเบื้องต้น</h4>
+      <h4 class="block-title">Issue Found</h4>
+      <p class="detail-description">${escapeHtml(report.detail || 'No detail provided.')}</p>
+      <h4 class="block-title">Immediate Action / Instruction</h4>
       <p class="detail-description">${escapeHtml(report.actionNote || '-')}</p>
     </div>
     <div class="card mod-detail-block">
       <div class="section__header section__header--home">
         <div>
           <h4 class="block-title">Media Evidence</h4>
-          <span class="section__hint">${(report.attachments || []).length} ไฟล์</span>
+          <span class="section__hint">${(report.attachments || []).length} file(s)</span>
         </div>
       </div>
-      <div class="mod-media-grid">${(report.attachments || []).length ? renderMediaGallery(report.attachments) : emptyStateHTML('ไม่มีไฟล์แนบ', 'ยังไม่มีรูปหรือวิดีโอแนบกับ MOD report นี้')}</div>
+      <div class="mod-media-grid">${(report.attachments || []).length ? renderMediaGallery(report.attachments) : emptyStateHTML('No media attached', 'No photo or video was attached to this MOD report.')}</div>
     </div>
     <div class="action-grid mod-detail-actions">
       ${getModDetailActions(report).map((action) => `<button class="btn ${action.primary ? 'btn-primary' : 'btn-secondary'}" type="button" data-mod-action="${action.value}" data-mod-id="${report.id}">${action.label}</button>`).join('')}
     </div>
     <div class="card mod-detail-block">
       <h4 class="block-title">Timeline</h4>
-      <div class="timeline">${logs.length ? logs.map((log) => timelineItemHTML(log)).join('') : emptyStateHTML('ยังไม่มีไทม์ไลน์', 'อัปเดตจะแสดงที่นี่')}</div>
+      <div class="timeline">${logs.length ? logs.map((log) => timelineItemHTML(log)).join('') : emptyStateHTML('No timeline yet', 'Updates will appear here.')}</div>
     </div>
   `;
 }
 
 function getModDetailActions(report) {
   const actions = [];
-  if (report.status === 'Open') actions.push({ value: 'start', label: 'เริ่มติดตาม', primary: true });
-  if (report.status === 'In Progress') actions.push({ value: 'resolve', label: 'ทำเครื่องหมายว่าแก้ไขแล้ว', primary: true });
-  if (report.status === 'Resolved') actions.push({ value: 'close', label: 'ปิดรายงาน', primary: true });
-  if (report.status === 'Closed') actions.push({ value: 'reopen', label: 'เปิดใหม่อีกครั้ง', primary: false });
-  if (!report.linkedTaskId) actions.push({ value: 'createTask', label: 'สร้างงานต่อจากรายการนี้', primary: false });
+  if (report.status === 'Open') actions.push({ value: 'start', label: 'Start Follow-up', primary: true });
+  if (report.status === 'In Progress') actions.push({ value: 'resolve', label: 'Mark Resolved', primary: true });
+  if (report.status === 'Resolved') actions.push({ value: 'close', label: 'Close Report', primary: true });
+  if (report.status === 'Closed') actions.push({ value: 'reopen', label: 'Reopen', primary: false });
+  if (!report.linkedTaskId) actions.push({ value: 'createTask', label: 'Create Task', primary: false });
   return actions;
 }
 
@@ -2826,7 +2665,7 @@ function runModReportAction(action, reportId) {
     start: { status: 'In Progress', label: 'Follow-up Started' },
     resolve: { status: 'Resolved', label: 'Resolved' },
     close: { status: 'Closed', label: 'Closed' },
-    reopen: { status: 'In Progress', label: 'เปิดใหม่อีกครั้งed' }
+    reopen: { status: 'In Progress', label: 'Reopened' }
   };
   const step = transitionMap[action];
   if (!step) return;
@@ -2907,11 +2746,22 @@ function onCreateTask(event) {
   const subject = document.getElementById('task-subject').value.trim();
   const detail = document.getElementById('task-detail').value.trim();
   const selectedAssigneeId = els.createAssignSelect?.value || '';
+  const allowedDepartments = getAllowedCreateDepartments();
   const canAssignNow = selectedAssigneeId && canAssignToDepartment(department);
   const selectedAssignee = canAssignNow ? users.find((user) => user.employeeId === selectedAssigneeId) : null;
 
+  if (!canCreateTasks()) {
+    alert('This role cannot create tasks.');
+    return;
+  }
+
   if (!location || !department || !priority || !subject) {
-    alert('กรุณากรอกข้อมูลที่จำเป็น: สถานที่ แผนก ระดับความสำคัญ และหัวข้อ');
+    alert('Please fill required fields: location, department, priority, and subject.');
+    return;
+  }
+
+  if (!allowedDepartments.includes(department)) {
+    alert(`This role cannot dispatch task to ${department}.`);
     return;
   }
 
@@ -2962,7 +2812,7 @@ function onCreateTask(event) {
   saveTasks(tasks);
   els.createTaskForm.reset();
   if (els.createAssignSelect) els.createAssignSelect.value = '';
-  setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO', true, renderCreateAssignmentState);
+  setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, getAllowedCreateDepartments()[0] || 'FO', true, renderCreateAssignmentState);
   setupChipGroup(document.getElementById('priority-chips'), els.taskPriority, 'Medium', true);
   renderApp();
   alert(selectedAssignee
@@ -2971,22 +2821,34 @@ function onCreateTask(event) {
   showPage('tasks');
 }
 
+function renderCreateDepartmentChoices() {
+  const allowed = getAllowedCreateDepartments();
+  const chips = Array.from(document.querySelectorAll('#department-chips [data-value]'));
+  chips.forEach((chip) => {
+    const isAllowed = allowed.includes(chip.dataset.value);
+    chip.classList.toggle('hidden', !isAllowed);
+  });
+  if (allowed.length && !allowed.includes(els.taskDepartment.value)) {
+    els.taskDepartment.value = allowed[0];
+  }
+}
+
 function renderCreateAssignmentState() {
   if (!els.createAssignWrap || !state.currentUser) return;
   const selectedDepartment = els.taskDepartment?.value || 'FO';
-  const canAssign = canAssignToDepartment(selectedDepartment);
+  const canAssign = selectedDepartment && canAssignToDepartment(selectedDepartment);
   els.createAssignWrap.classList.toggle('hidden', !canAssign);
   if (!canAssign) {
-    populateAssigneeSelect(els.createAssignSelect, [], '', 'Assignment available for supervisor own department or manager only');
+    populateAssigneeSelect(els.createAssignSelect, [], '', 'Immediate assign available for own team manager / CGM only');
     return;
   }
 
   const assignees = getAssignableUsers(selectedDepartment);
   populateAssigneeSelect(els.createAssignSelect, assignees, '', `Optional: assign immediately to ${selectedDepartment} team`);
   if (els.createAssignHelper) {
-    els.createAssignHelper.textContent = canSeeAllHotelTasks()
-      ? `${state.currentUser.role} can assign tasks to any department during creation.`
-      : `Supervisor can assign only to ${state.currentUser.department} team during creation.`;
+    els.createAssignHelper.textContent = isCGM()
+      ? 'CGM can assign immediately to any department team.'
+      : 'DOR can assign immediately only to FO team.';
   }
 }
 
@@ -3018,14 +2880,14 @@ function assignCurrentTask() {
   const task = getTaskById(state.currentTaskId);
   if (!task) return;
   if (!canManageAssignments(task)) {
-    alert('คุณไม่สามารถมอบหมายงานนี้ได้');
+    alert('You cannot assign this task.');
     return;
   }
 
   const selectedAssigneeId = els.detailAssignSelect?.value || '';
   const assignee = users.find((user) => user.employeeId === selectedAssigneeId);
   if (!assignee) {
-    alert('กรุณาเลือกพนักงานก่อน');
+    alert('Please select a team member first.');
     return;
   }
 
@@ -3071,29 +2933,31 @@ function populateAssigneeSelect(selectEl, people, selectedValue = '', emptyLabel
 
 function getAssignableUsers(department) {
   return users
-    .filter((user) => user.department === department && user.role !== 'Manager')
-    .sort((a, b) => {
-      const roleWeight = (role) => ({ Supervisor: 0, Staff: 1 }[role] ?? 2);
-      return roleWeight(a.role) - roleWeight(b.role) || a.name.localeCompare(b.name);
-    });
+    .filter((user) => user.department === department && isAssignableRole(user.role))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function canAssignToDepartment(department) {
-  return canSeeAllHotelTasks() || (isSupervisor() && state.currentUser?.department === department);
+  if (isCGM()) return true;
+  if (isDOR()) return department === 'FO';
+  return isDepartmentManager() && state.currentUser?.department === department;
 }
 
 function canManageAssignments(task) {
-  return canSeeAllHotelTasks() || (isSupervisor() && state.currentUser?.department === task.department);
+  if (isCGM()) return true;
+  if (isDOR()) return task.department === 'FO';
+  return isDepartmentManager() && state.currentUser?.department === task.department;
 }
 
 function canWorkOnTask(task) {
-  return canSeeAllHotelTasks() || canManageAssignments(task) || task.assignedToName === state.currentUser?.name;
+  if (isCGM()) return true;
+  return task.assignedToName === state.currentUser?.name;
 }
 
 function saveDetailNote() {
   const note = els.detailNoteInput.value.trim();
   if (!note || !state.currentTaskId) {
-    alert('กรุณาพิมพ์บันทึกก่อน');
+    alert('Please type a note first.');
     return;
   }
 
@@ -3120,7 +2984,7 @@ function runTaskTransition(action, taskId) {
   };
   if (!transitions[action]) return;
   if (!canTransitionTask(task, action)) {
-    alert('ไม่สามารถทำรายการนี้ได้สำหรับผู้ใช้หรือสถานะงานปัจจุบัน');
+    alert('This action is not allowed for the current user or task status.');
     return;
   }
   updateTask(taskId, (draft) => {
@@ -3152,26 +3016,24 @@ function openTaskDetail(taskId) {
 
 function getDetailActions(task) {
   const actions = [];
-  const manager = canSeeAllHotelTasks();
-  const sameDepartment = state.currentUser.department === task.department;
-  const canManage = canManageAssignments(task);
-  const canWork = canWorkOnTask(task);
+  const assignedWorker = task.assignedToName === state.currentUser?.name;
+  const canClose = isCGM() || isFODispatcher();
 
-  if (task.status === 'New' && sameDepartment && !canManage) {
-    actions.push({ value: 'accept', label: 'รับงาน', primary: true, full: true });
+  if (task.status === 'New' && assignedWorker) {
+    actions.push({ value: 'accept', label: 'Accept Task', primary: true, full: true });
   }
-  if (task.status === 'Accepted' && canWork) {
-    actions.push({ value: 'start', label: 'เริ่มทำงาน', primary: true, full: true });
+  if (task.status === 'Accepted' && assignedWorker) {
+    actions.push({ value: 'start', label: 'Start Work', primary: true, full: true });
   }
-  if (task.status === 'In Progress' && canWork) {
-    actions.push({ value: 'focus-note', label: 'เพิ่มบันทึก', primary: false });
-    actions.push({ value: 'done', label: 'ทำเสร็จ', primary: true });
+  if (task.status === 'In Progress' && assignedWorker) {
+    actions.push({ value: 'focus-note', label: 'Add Note', primary: false });
+    actions.push({ value: 'done', label: 'Send to FO', primary: true });
   }
-  if (task.status === 'Done' && (manager || state.currentUser.department === task.openedByDepartment)) {
-    actions.push({ value: 'close', label: 'ปิดงาน', primary: true, full: true });
+  if (task.status === 'Done' && canClose) {
+    actions.push({ value: 'close', label: 'Close Task', primary: true, full: true });
   }
-  if (task.status === 'Closed' && (manager || canManage)) {
-    actions.push({ value: 'reopen', label: 'เปิดใหม่อีกครั้ง Task', primary: false, full: true });
+  if (task.status === 'Closed' && canClose) {
+    actions.push({ value: 'reopen', label: 'Reopen Task', primary: false, full: true });
   }
   return actions;
 }
@@ -3181,7 +3043,7 @@ function canTransitionTask(task, action) {
 }
 
 function getTaskListResults() {
-  if (isSupervisor()) return getSupervisorTaskScope();
+  if (isDepartmentManager()) return getSupervisorTaskScope();
   return getTaskContextFilteredTasks(getVisibleTasks(getTasks()))
     .filter((task) => state.taskStatusFilter === 'All' || task.status === state.taskStatusFilter)
     .filter((task) => !state.highOnly || ['High', 'Urgent'].includes(task.priority))
@@ -3267,7 +3129,7 @@ function exportReportCsv() {
     task.category,
     task.priority,
     task.status,
-    `${task.openedByName} / ${thDepartment(task.openedByDepartment)}`,
+    `${task.openedByName} / ${task.openedByDepartment}`,
     task.assignedToName || '-',
     formatDateTime(task.createdAt),
     formatDateTime(task.updatedAt || task.createdAt)
@@ -3409,7 +3271,7 @@ function exportReportPdf() {
   const afterPriorityY = doc.lastAutoTable.finalY + 18;
   const taskRows = rows.length ? rows.map((task) => ([
     task.ticketNo,
-    `${task.location} / ${thDepartment(task.department)}`,
+    `${task.location} / ${task.department}`,
     task.subject,
     task.priority,
     task.status,
@@ -3697,8 +3559,11 @@ function drawPdfSummaryBox(doc, x, y, width, height, label, value, foot) {
 }
 
 function getVisibleTasks(tasks) {
+  if (isMOD()) return [];
   if (canSeeAllHotelTasks()) return tasks;
-  return tasks.filter((task) => task.department === state.currentUser.department || task.openedByDepartment === state.currentUser.department);
+  if (isDepartmentManager()) return tasks.filter((task) => task.department === state.currentUser.department);
+  if (isDepartmentStaff()) return tasks.filter((task) => task.assignedToName === state.currentUser.name);
+  return tasks.filter((task) => task.openedByName === state.currentUser.name || task.assignedToName === state.currentUser.name);
 }
 
 function getTasks() {
@@ -3720,6 +3585,121 @@ function updateTask(taskId, updater) {
     return normalizeTask(updater({ ...task, logs: [...(task.logs || [])] }));
   });
   saveTasks(updated);
+}
+
+function renderTeamAdminSection() {
+  if (!els.teamAdminSection) return;
+  const canManage = canManageOwnTeamDirectory();
+  els.teamAdminSection.classList.toggle('hidden', !canManage);
+  if (!canManage) return;
+  const department = getManagedDepartment();
+  const roleLabel = getManagedStaffRoleLabel();
+  els.teamAdminTitle.textContent = `${department} Team Setup`;
+  els.teamAdminHint.textContent = `Add or remove ${roleLabel} accounts in your team.`;
+  const teamMembers = users.filter((user) => user.department === department && user.role === roleLabel).sort((a, b) => a.name.localeCompare(b.name));
+  els.teamAdminList.innerHTML = teamMembers.length
+    ? teamMembers.map((member) => `
+        <div class="team-admin-row">
+          <div class="team-admin-row__meta">
+            <strong>${escapeHtml(member.name)}</strong>
+            <div class="team-admin-row__sub">${escapeHtml(member.employeeId)} / ${escapeHtml(member.role)}</div>
+          </div>
+          <button class="btn btn-secondary" type="button" data-team-remove="${escapeHtml(member.employeeId)}">Remove</button>
+        </div>
+      `).join('')
+    : emptyStateHTML('No team member yet', 'Add the first team member for this department.');
+}
+
+function resetTeamAdminForm() {
+  if (els.teamMemberName) els.teamMemberName.value = '';
+  if (els.teamMemberId) els.teamMemberId.value = '';
+  if (els.teamMemberPassword) els.teamMemberPassword.value = '1234';
+}
+
+function onAddTeamMember(event) {
+  event.preventDefault();
+  if (!canManageOwnTeamDirectory()) return;
+  const name = els.teamMemberName.value.trim();
+  const employeeId = els.teamMemberId.value.trim();
+  const password = (els.teamMemberPassword.value || '1234').trim() || '1234';
+  if (!name || !employeeId) {
+    alert('Please enter staff name and employee ID.');
+    return;
+  }
+  if (users.some((user) => user.employeeId === employeeId)) {
+    alert('Employee ID already exists.');
+    return;
+  }
+  const department = getManagedDepartment();
+  users.push({ employeeId, password, name, role: getManagedStaffRoleLabel(), department });
+  saveUsers(users);
+  resetTeamAdminForm();
+  renderTeamAdminSection();
+}
+
+function onTeamAdminListClick(event) {
+  const button = event.target.closest('[data-team-remove]');
+  if (!button || !canManageOwnTeamDirectory()) return;
+  const employeeId = button.dataset.teamRemove;
+  users = users.filter((user) => user.employeeId !== employeeId);
+  saveUsers(users);
+  renderTeamAdminSection();
+}
+
+async function onDetailWorkMediaSelected(event) {
+  const files = Array.from(event.target.files || []);
+  state.detailDraftMedia = await Promise.all(files.map(serializeMediaFile));
+  renderDetailWorkMediaPreview();
+}
+
+function onDetailWorkMediaPreviewClick(event) {
+  const button = event.target.closest('[data-mod-remove-media]');
+  if (!button) return;
+  const index = Number(button.dataset.modRemoveMedia);
+  state.detailDraftMedia.splice(index, 1);
+  renderDetailWorkMediaPreview();
+}
+
+function renderDetailWorkMediaPreview() {
+  if (!els.detailWorkMediaPreview) return;
+  const items = state.detailDraftMedia || [];
+  els.detailWorkMediaPreview.innerHTML = items.length
+    ? renderMediaGallery(items, { removable: true })
+    : emptyStateHTML('No work media selected', 'Attach photo or video from the department before sending work back to FO.');
+}
+
+function clearDetailWorkMediaDraft() {
+  state.detailDraftMedia = [];
+  if (els.detailWorkMediaInput) els.detailWorkMediaInput.value = '';
+  renderDetailWorkMediaPreview();
+}
+
+function saveDetailWorkMedia() {
+  const task = getTaskById(state.currentTaskId);
+  if (!task) return;
+  if (!state.detailDraftMedia.length) {
+    alert('Please choose photo or video first.');
+    return;
+  }
+  updateTask(task.id, (draft) => {
+    draft.mediaAttachments = [...(draft.mediaAttachments || []), ...state.detailDraftMedia.map((item) => ({ ...item }))];
+    draft.logs.unshift(createLog('Media Added', `Attached ${state.detailDraftMedia.length} work media file(s).`));
+    draft.updatedAt = new Date().toISOString();
+    return draft;
+  });
+  clearDetailWorkMediaDraft();
+  renderApp();
+  showPage('detail');
+}
+
+function renderDetailWorkUploadCard(task) {
+  if (!els.detailWorkUploadCard) return;
+  const visible = isDepartmentStaff() && task.assignedToName === state.currentUser?.name && ['Accepted', 'In Progress'].includes(task.status);
+  els.detailWorkUploadCard.classList.toggle('hidden', !visible);
+  if (visible && els.detailWorkUploadHint) {
+    els.detailWorkUploadHint.textContent = 'Attach photo or video evidence before sending this task back to FO.';
+  }
+  renderDetailWorkMediaPreview();
 }
 
 function normalizeTask(task) {
@@ -3754,25 +3734,26 @@ function normalizeTask(task) {
 function taskCardHTML(task, options = {}) {
   const overdueClass = isTaskOverdue(task) ? ' is-overdue' : '';
   const quickAction = getCardAction(task, options.singleAction);
+  const modBadge = task.sourceType === 'MOD' ? '<span class="badge badge-status-accepted">MOD</span>' : '';
   return `
     <article class="card task-card${overdueClass}">
       <div class="task-card__top">
         <span class="task-card__ticket">${escapeHtml(task.ticketNo)}</span>
         <span class="task-card__time">${formatClock(task.updatedAt || task.createdAt)}</span>
       </div>
-      <div class="task-card__meta">${escapeHtml(task.location)} / ${escapeHtml(thDepartment(task.department))}</div>
+      <div class="task-card__meta">${escapeHtml(task.location)} / ${escapeHtml(task.department)}</div>
       <h3 class="task-card__title">${escapeHtml(task.subject)}</h3>
       <div class="task-card__badges">
-        ${isTaskFromMod(task) ? '<span class="badge badge-source-mod">MOD</span>' : ''}
-        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(thPriority(task.priority))}</span>
-        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(thStatus(task.status))}</span>
+        ${modBadge}
+        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
+        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(task.status)}</span>
       </div>
       <div class="task-card__info">
-        <span>เปิดโดย ${escapeHtml(task.openedByDepartment)}</span>
-        <span>ผู้รับผิดชอบ: ${escapeHtml(task.assignedToName || '-')}</span>
+        <span>Opened by ${escapeHtml(task.openedByDepartment)}</span>
+        <span>Assigned: ${escapeHtml(task.assignedToName || '-')}</span>
       </div>
       <div class="task-card__actions">
-        <button class="btn btn-secondary" type="button" data-task-view="${escapeHtml(task.id)}">ดู</button>
+        <button class="btn btn-secondary" type="button" data-task-view="${escapeHtml(task.id)}">View</button>
         ${quickAction}
       </div>
     </article>
@@ -3786,10 +3767,10 @@ function getCardAction(task, forcedLabel) {
   const detailActions = getDetailActions(task);
   const primary = detailActions.find((action) => action.primary) || detailActions[0];
   if (!primary) {
-    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">เปิด</button>`;
+    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>`;
   }
   if (primary.value === 'focus-note') {
-    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">เปิด</button>`;
+    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>`;
   }
   return `<button class="btn btn-primary" type="button" data-task-action="${escapeHtml(primary.value)}" data-task-id="${escapeHtml(task.id)}">${escapeHtml(primary.label)}</button>`;
 }
@@ -3799,7 +3780,7 @@ function timelineItemHTML(log) {
     <div class="timeline-item">
       <div class="timeline-item__dot"></div>
       <div class="timeline-item__content">
-        <div class="timeline-item__title">${escapeHtml(thLogAction(log.action))} / ${escapeHtml(log.byName || '-')}</div>
+        <div class="timeline-item__title">${escapeHtml(log.action)} / ${escapeHtml(log.byName || '-')}</div>
         <div class="timeline-item__note">${escapeHtml(log.note || '-')}</div>
         <div class="timeline-item__time">${formatDateTime(log.createdAt)}</div>
       </div>
@@ -3906,11 +3887,11 @@ function statusBadgeClass(status) {
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const mins = Math.max(1, Math.floor(diffMs / 60000));
-  if (mins < 60) return `${mins} นาทีที่แล้ว`;
+  if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ชม. ที่แล้ว`;
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days} วันที่แล้ว`;
+  return `${days}d ago`;
 }
 
 function isTaskOverdue(task) {
@@ -3944,42 +3925,95 @@ function getTaskRangeDate(task) {
   return new Date(task.updatedAt || task.createdAt);
 }
 
-function isManager() {
-  return state.currentUser?.role === 'Manager';
+function isCGM() {
+  return state.currentUser?.role === 'CGM';
 }
 
 function isMOD() {
   return state.currentUser?.role === 'MOD';
 }
 
-function isSupervisor() {
-  return state.currentUser?.role === 'Supervisor';
+function isFOStaff() {
+  return state.currentUser?.role === 'FO Staff';
 }
 
-function isStaff() {
-  return state.currentUser?.role === 'Staff';
+function isDOR() {
+  return state.currentUser?.role === 'DOR';
+}
+
+function isFODispatcher() {
+  return isFOStaff() || isDOR();
+}
+
+function isDepartmentStaff() {
+  return ['HK Staff', 'ENG Staff', 'FB Staff'].includes(state.currentUser?.role || '');
+}
+
+function isDepartmentManager() {
+  return ['Housekeeping Manager', 'ENG Manager', 'FB Manager'].includes(state.currentUser?.role || '');
 }
 
 function canAccessMod() {
-  return isManager() || isMOD();
+  return isCGM() || isMOD();
 }
 
 function canViewReports() {
-  return isManager() || isMOD();
+  return isCGM();
+}
+
+function canViewTaskList() {
+  return !isMOD();
+}
+
+function canViewHistory() {
+  return !isMOD();
+}
+
+function canCreateTasks() {
+  return isFODispatcher() || isCGM();
 }
 
 function canSeeAllHotelTasks() {
-  return isManager() || isMOD();
+  return isFODispatcher() || isCGM();
+}
+
+function canManageOwnTeamDirectory() {
+  return isDOR() || isDepartmentManager();
+}
+
+function getManagedDepartment() {
+  if (isDOR()) return 'FO';
+  if (isDepartmentManager()) return state.currentUser?.department || '';
+  return '';
+}
+
+function getManagedStaffRoleLabel() {
+  return {
+    FO: 'FO Staff',
+    HK: 'HK Staff',
+    Engineering: 'ENG Staff',
+    FB: 'FB Staff'
+  }[getManagedDepartment()] || 'Staff';
+}
+
+function isAssignableRole(role) {
+  return ['FO Staff', 'HK Staff', 'ENG Staff', 'FB Staff'].includes(role);
+}
+
+function getAllowedCreateDepartments() {
+  if (isFOStaff()) return ['FB', 'HK', 'Engineering'];
+  if (isDOR() || isCGM()) return ['FO', 'FB', 'HK', 'Engineering'];
+  return [];
 }
 
 function getDefaultLandingPage() {
-  if (isManager()) return 'dashboard';
+  if (isCGM()) return 'dashboard';
   if (isMOD()) return 'mod';
   return 'home';
 }
 
 function getHomeNavPage() {
-  if (isManager()) return 'dashboard';
+  if (isCGM()) return 'dashboard';
   if (isMOD()) return 'mod';
   return 'home';
 }
