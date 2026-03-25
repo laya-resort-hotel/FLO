@@ -275,6 +275,10 @@ const els = {
   teamFilterHint: document.getElementById('team-filter-hint'),
   teamFilterClear: document.getElementById('team-filter-clear'),
   supervisorWorkloadCards: document.getElementById('supervisor-workload-cards'),
+  supervisorBalancePanel: document.getElementById('supervisor-balance-panel'),
+  supervisorBalanceStatus: document.getElementById('supervisor-balance-status'),
+  supervisorBalanceRecommendations: document.getElementById('supervisor-balance-recommendations'),
+  supervisorBalanceActions: document.getElementById('supervisor-balance-actions'),
   supervisorBoardLanes: document.getElementById('supervisor-board-lanes'),
   tasksList: document.getElementById('tasks-list'),
   detailTicket: document.getElementById('detail-ticket'),
@@ -386,6 +390,7 @@ function bindEvents() {
   els.teamAssigneeFilter.addEventListener('change', onTeamAssigneeFilterChange);
   els.teamFilterClear.addEventListener('click', resetSupervisorTaskBoardFilters);
   els.supervisorWorkloadCards.addEventListener('click', onWorkloadCardClick);
+  els.supervisorBalanceActions.addEventListener('click', onSupervisorBalanceActionClick);
   els.supervisorBoardLanes.addEventListener('click', onSupervisorBoardClick);
   els.homeSection1Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[0].preset));
   els.homeSection2Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[1].preset));
@@ -1004,13 +1009,15 @@ function renderSupervisorTaskBoard() {
   els.supervisorBoard.classList.remove('hidden');
   const summaryTasks = getSupervisorBoardSummaryTasks();
   const boardTasks = getSupervisorBoardLaneTasks();
-  const workloadTasks = getSupervisorBoardWorkloadTasks();
+  const balancingTasks = getSupervisorBalancingTasks();
+  const snapshot = buildTeamWorkloadSnapshot(balancingTasks, state.currentUser?.department);
   const department = state.currentUser?.department || 'Department';
 
   els.teamFilterHint.textContent = buildSupervisorFilterHint();
   renderSupervisorBoardSummary(summaryTasks, department);
   renderSupervisorAssigneeOptions(summaryTasks);
-  renderSupervisorWorkloadCards(workloadTasks);
+  renderSupervisorWorkloadCards(snapshot);
+  renderSupervisorBalancePanel(snapshot);
   renderSupervisorBoardLanes(boardTasks);
 }
 
@@ -1050,32 +1057,29 @@ function renderSupervisorAssigneeOptions(tasks) {
   `).join('');
 }
 
-function renderSupervisorWorkloadCards(tasks) {
-  const teamUsers = getTeamUsers(state.currentUser.department);
-  const activeTasks = tasks.filter((task) => !['Done', 'Closed'].includes(task.status));
-  const maxOpen = Math.max(1, ...teamUsers.map((user) => activeTasks.filter((task) => task.assignedToName === user.name).length));
-
-  const cards = teamUsers.map((user) => {
-    const assigned = activeTasks.filter((task) => task.assignedToName === user.name);
-    const inProgress = assigned.filter((task) => task.status === 'In Progress').length;
-    const overdue = assigned.filter((task) => isTaskOverdue(task)).length;
-    const accepted = assigned.filter((task) => task.status === 'Accepted').length;
-    const fill = Math.max(8, Math.round((assigned.length / maxOpen) * 100));
+function renderSupervisorWorkloadCards(snapshot) {
+  const cards = snapshot.metrics.map((item) => {
+    const user = item.user;
+    const fill = Math.max(8, Math.round((item.score / snapshot.maxScore) * 100));
     const activeClass = matchesSelectedAssigneeName(user.name) ? ' is-active' : '';
     return `
-      <button class="workload-card${activeClass}" type="button" data-workload-owner="name:${escapeHtml(user.name)}">
+      <button class="workload-card workload-card--${escapeHtml(item.bandKey)}${activeClass}" type="button" data-workload-owner="name:${escapeHtml(user.name)}">
         <div class="workload-card__top">
           <div>
             <div class="workload-card__name">${escapeHtml(user.name)}</div>
             <div class="workload-card__role">${escapeHtml(user.role)} / ${escapeHtml(user.department)}</div>
           </div>
-          <div class="workload-card__count">${escapeHtml(String(assigned.length))}</div>
+          <div class="workload-card__count">${escapeHtml(String(item.activeCount))}</div>
+        </div>
+        <div class="workload-card__status-row">
+          <span class="balance-badge balance-badge--${escapeHtml(item.bandKey)}">${escapeHtml(item.bandLabel)}</span>
+          <span class="workload-card__score">Load ${escapeHtml(formatScore(item.score))}</span>
         </div>
         <div class="workload-card__bar"><span class="workload-card__fill" style="--fill:${fill}%"></span></div>
         <div class="workload-card__meta">
-          <span>Accepted ${accepted}</span>
-          <span>In Progress ${inProgress}</span>
-          <span>Overdue ${overdue}</span>
+          <span>Accepted ${item.accepted}</span>
+          <span>In Progress ${item.inProgress}</span>
+          <span>Overdue ${item.overdue}</span>
         </div>
       </button>
     `;
@@ -1084,6 +1088,51 @@ function renderSupervisorWorkloadCards(tasks) {
   els.supervisorWorkloadCards.innerHTML = cards.length
     ? cards.join('')
     : emptyStateHTML('No team members', 'Add team users to see workload cards.');
+}
+
+function renderSupervisorBalancePanel(snapshot) {
+  if (!els.supervisorBalancePanel) return;
+  const statusItems = [
+    { label: 'Overloaded', value: snapshot.overloaded.length, meta: 'Needs relief', band: 'overloaded' },
+    { label: 'Light / Available', value: snapshot.light.length + snapshot.available.length, meta: 'Ready for more', band: 'light' },
+    { label: 'Unassigned Queue', value: snapshot.unassignedTasks.length, meta: 'Waiting for owner', band: 'balanced' },
+    { label: 'Team Avg Load', value: formatScore(snapshot.avgScore), meta: `${formatScore(snapshot.avgActiveCount)} active avg`, band: 'heavy' }
+  ];
+
+  els.supervisorBalanceStatus.innerHTML = statusItems.map((item) => `
+    <article class="balance-status-card balance-status-card--${escapeHtml(item.band)}">
+      <span class="balance-status-card__label">${escapeHtml(item.label)}</span>
+      <strong class="balance-status-card__value">${escapeHtml(String(item.value))}</strong>
+      <span class="balance-status-card__meta">${escapeHtml(item.meta)}</span>
+    </article>
+  `).join('');
+
+  const recommendations = buildBalanceRecommendations(snapshot);
+  els.supervisorBalanceRecommendations.innerHTML = recommendations.length
+    ? recommendations.map((item) => `
+      <article class="balance-reco-card">
+        <div class="balance-reco-card__head">
+          <div>
+            <h4 class="balance-reco-card__title">${escapeHtml(item.title)}</h4>
+            <p class="balance-reco-card__meta">${escapeHtml(item.meta)}</p>
+          </div>
+          <button class="btn btn-secondary" type="button" data-balance-action="${escapeHtml(item.action)}">${escapeHtml(item.buttonLabel || 'Run')}</button>
+        </div>
+      </article>
+    `).join('')
+    : emptyStateHTML('Team is balanced', 'No urgent rebalancing action is needed right now.');
+
+  const suggestedTarget = snapshot.lightestMetric?.user?.name || 'best target';
+  const heaviestOwner = snapshot.heaviestMetric?.user?.name || 'busy owner';
+  const moveDisabled = getRebalanceMovePlan(snapshot) ? '' : 'disabled';
+  const assignDisabled = snapshot.unassignedTasks.length ? '' : 'disabled';
+  const autoDisabled = getAutoBalancePlan(snapshot, 2).steps.length ? '' : 'disabled';
+
+  els.supervisorBalanceActions.innerHTML = `
+    <button class="btn btn-primary" type="button" data-balance-action="assign-unassigned" ${assignDisabled}>Assign oldest unassigned → ${escapeHtml(suggestedTarget)}</button>
+    <button class="btn btn-secondary" type="button" data-balance-action="rebalance-one" ${moveDisabled}>Move 1 task from ${escapeHtml(heaviestOwner)} → ${escapeHtml(suggestedTarget)}</button>
+    <button class="btn btn-secondary" type="button" data-balance-action="auto-balance" ${autoDisabled}>Auto Balance 2 steps</button>
+  `;
 }
 
 function renderSupervisorBoardLanes(tasks) {
@@ -1167,6 +1216,31 @@ function onWorkloadCardClick(event) {
   renderTaskList();
 }
 
+function onSupervisorBalanceActionClick(event) {
+  const button = event.target.closest('[data-balance-action]');
+  if (!button || button.disabled) return;
+
+  const snapshot = buildTeamWorkloadSnapshot(getSupervisorBalancingTasks(), state.currentUser?.department);
+  let message = '';
+
+  switch (button.dataset.balanceAction) {
+    case 'assign-unassigned':
+      message = runAssignOldestUnassigned(snapshot);
+      break;
+    case 'rebalance-one':
+      message = runRebalanceOne(snapshot);
+      break;
+    case 'auto-balance':
+      message = runAutoBalance(snapshot, 2);
+      break;
+    default:
+      return;
+  }
+
+  if (message) alert(message);
+  renderTaskList();
+}
+
 function onSupervisorBoardClick(event) {
   const viewButton = event.target.closest('[data-task-view]');
   if (!viewButton) return;
@@ -1190,8 +1264,8 @@ function getSupervisorBoardSummaryTasks() {
   return getSupervisorTaskScope({ ignoreAssigneeFilter: true, ignoreStatusFilter: true, ignoreHighOnly: true, ignoreSearch: true }).filter((task) => task.department === state.currentUser.department);
 }
 
-function getSupervisorBoardWorkloadTasks() {
-  return getSupervisorTaskScope({ ignoreAssigneeFilter: true, ignoreStatusFilter: true }).filter((task) => task.department === state.currentUser.department);
+function getSupervisorBalancingTasks() {
+  return getSupervisorTaskScope({ ignoreAssigneeFilter: true, ignoreStatusFilter: true, ignoreHighOnly: true, ignoreSearch: true }).filter((task) => task.department === state.currentUser.department);
 }
 
 function getSupervisorBoardLaneTasks() {
@@ -1213,6 +1287,214 @@ function getSupervisorTaskScope(options = {}) {
   if (!ignoreHighOnly) tasks = tasks.filter((task) => !state.highOnly || ['High', 'Urgent'].includes(task.priority));
   if (!ignoreSearch) tasks = tasks.filter((task) => matchesSearch(task, state.taskSearch));
   return tasks.sort(sortTasks);
+}
+
+function buildTeamWorkloadSnapshot(tasks, department) {
+  const teamUsers = getTeamUsers(department);
+  const activeTasks = tasks.filter((task) => !['Done', 'Closed'].includes(task.status));
+  const unassignedTasks = activeTasks
+    .filter((task) => !task.assignedToName)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt) || priorityWeight(b.priority) - priorityWeight(a.priority));
+
+  const rawMetrics = teamUsers.map((user) => {
+    const assignedTasks = activeTasks.filter((task) => task.assignedToName === user.name);
+    const score = assignedTasks.reduce((total, task) => total + taskLoadScore(task), 0);
+    return {
+      user,
+      tasks: assignedTasks.sort(sortTasks),
+      activeCount: assignedTasks.length,
+      accepted: assignedTasks.filter((task) => task.status === 'Accepted').length,
+      inProgress: assignedTasks.filter((task) => task.status === 'In Progress').length,
+      overdue: assignedTasks.filter((task) => isTaskOverdue(task)).length,
+      score
+    };
+  });
+
+  const avgScore = rawMetrics.length ? rawMetrics.reduce((sum, item) => sum + item.score, 0) / rawMetrics.length : 0;
+  const avgActiveCount = rawMetrics.length ? rawMetrics.reduce((sum, item) => sum + item.activeCount, 0) / rawMetrics.length : 0;
+  const metrics = rawMetrics
+    .map((item) => {
+      const bandKey = classifyWorkloadBand(item, avgScore, avgActiveCount);
+      return {
+        ...item,
+        bandKey,
+        bandLabel: getWorkloadBandLabel(bandKey)
+      };
+    })
+    .sort((a, b) => b.score - a.score || b.activeCount - a.activeCount || a.user.name.localeCompare(b.user.name));
+
+  const available = metrics.filter((item) => item.bandKey === 'available');
+  const light = metrics.filter((item) => item.bandKey === 'light');
+  const balanced = metrics.filter((item) => item.bandKey === 'balanced');
+  const heavy = metrics.filter((item) => item.bandKey === 'heavy');
+  const overloaded = metrics.filter((item) => item.bandKey === 'overloaded');
+  const metricsAsc = [...metrics].sort((a, b) => a.score - b.score || a.activeCount - b.activeCount || a.user.name.localeCompare(b.user.name));
+
+  return {
+    department,
+    teamUsers,
+    activeTasks,
+    unassignedTasks,
+    metrics,
+    avgScore,
+    avgActiveCount,
+    maxScore: Math.max(1, ...metrics.map((item) => item.score)),
+    available,
+    light,
+    balanced,
+    heavy,
+    overloaded,
+    heaviestMetric: metrics[0] || null,
+    lightestMetric: metricsAsc[0] || null,
+    orderedTargets: metricsAsc,
+    orderedSources: [...metrics]
+  };
+}
+
+function taskLoadScore(task) {
+  const statusScore = { New: 1, Accepted: 1.15, 'In Progress': 1.45 }[task.status] || 1;
+  const priorityScore = { Low: 0.05, Medium: 0.25, High: 0.55, Urgent: 0.9 }[task.priority] || 0.2;
+  const overdueScore = isTaskOverdue(task) ? 0.95 : 0;
+  return Number((statusScore + priorityScore + overdueScore).toFixed(2));
+}
+
+function classifyWorkloadBand(item, avgScore, avgActiveCount) {
+  if (item.activeCount === 0) return 'available';
+  const overloadThreshold = Math.max(avgScore * 1.65, avgScore + 1.5, 3.2);
+  const heavyThreshold = Math.max(avgScore * 1.2, avgScore + 0.6, 2.1);
+  const lightThreshold = Math.max(0.85, avgScore * 0.65);
+
+  if (item.score >= overloadThreshold || item.activeCount >= avgActiveCount + 2) return 'overloaded';
+  if (item.score >= heavyThreshold || item.activeCount >= avgActiveCount + 1) return 'heavy';
+  if (item.score <= lightThreshold || item.activeCount <= Math.max(0, avgActiveCount - 1.1)) return 'light';
+  return 'balanced';
+}
+
+function getWorkloadBandLabel(bandKey) {
+  return {
+    overloaded: 'Overloaded',
+    heavy: 'Heavy',
+    balanced: 'Balanced',
+    light: 'Light',
+    available: 'Available'
+  }[bandKey] || 'Balanced';
+}
+
+function buildBalanceRecommendations(snapshot) {
+  const items = [];
+  const assignTarget = pickBestTargetMetric(snapshot);
+  if (snapshot.unassignedTasks.length && assignTarget) {
+    const task = snapshot.unassignedTasks[0];
+    items.push({
+      action: 'assign-unassigned',
+      title: `Assign oldest unassigned to ${assignTarget.user.name}`,
+      meta: `${task.ticketNo} · ${task.subject}`,
+      buttonLabel: 'Assign now'
+    });
+  }
+
+  const movePlan = getRebalanceMovePlan(snapshot);
+  if (movePlan) {
+    items.push({
+      action: 'rebalance-one',
+      title: `Move 1 task from ${movePlan.from.user.name} to ${movePlan.to.user.name}`,
+      meta: `${movePlan.task.ticketNo} · ${movePlan.task.subject}`,
+      buttonLabel: 'Move now'
+    });
+  }
+
+  if (getAutoBalancePlan(snapshot, 2).steps.length) {
+    items.push({
+      action: 'auto-balance',
+      title: 'Auto balance recommended queue',
+      meta: 'Runs up to 2 safe balancing steps and keeps a full timeline log.',
+      buttonLabel: 'Run 2 steps'
+    });
+  }
+
+  return items;
+}
+
+function pickBestTargetMetric(snapshot, { excludeName = '' } = {}) {
+  return snapshot.orderedTargets.find((item) => item.user.name !== excludeName) || null;
+}
+
+function pickRebalanceCandidateTask(tasks) {
+  const safeTasks = tasks.filter((task) => ['New', 'Accepted'].includes(task.status));
+  const pool = safeTasks.length ? safeTasks : tasks.filter((task) => task.status !== 'In Progress');
+  return (pool.length ? pool : [])
+    .slice()
+    .sort((a, b) => Number(isTaskOverdue(b)) - Number(isTaskOverdue(a)) || priorityWeight(b.priority) - priorityWeight(a.priority) || new Date(a.createdAt) - new Date(b.createdAt))[0] || null;
+}
+
+function getRebalanceMovePlan(snapshot) {
+  const donor = snapshot.orderedSources.find((item) => ['overloaded', 'heavy'].includes(item.bandKey) && item.activeCount > 0);
+  if (!donor) return null;
+  const target = pickBestTargetMetric(snapshot, { excludeName: donor.user.name });
+  if (!target) return null;
+  if (donor.score - target.score < 0.9 && donor.activeCount - target.activeCount < 2) return null;
+  const task = pickRebalanceCandidateTask(donor.tasks);
+  if (!task) return null;
+  return { from: donor, to: target, task };
+}
+
+function getAutoBalancePlan(snapshot, maxSteps = 2) {
+  const steps = [];
+  let draft = JSON.parse(JSON.stringify(snapshot));
+  for (let index = 0; index < maxSteps; index += 1) {
+    const assignTarget = pickBestTargetMetric(draft);
+    if (draft.unassignedTasks.length && assignTarget) {
+      const task = draft.unassignedTasks.shift();
+      steps.push({ type: 'assign-unassigned', taskId: task.id, assigneeName: assignTarget.user.name, taskLabel: `${task.ticketNo}` });
+      draft = buildTeamWorkloadSnapshot(simulateAssignment(draft.activeTasks, task.id, assignTarget.user.name), draft.department);
+      continue;
+    }
+    const movePlan = getRebalanceMovePlan(draft);
+    if (!movePlan) break;
+    steps.push({ type: 'rebalance-one', taskId: movePlan.task.id, assigneeName: movePlan.to.user.name, fromName: movePlan.from.user.name, taskLabel: `${movePlan.task.ticketNo}` });
+    draft = buildTeamWorkloadSnapshot(simulateAssignment(draft.activeTasks, movePlan.task.id, movePlan.to.user.name), draft.department);
+  }
+  return { steps };
+}
+
+function simulateAssignment(tasks, taskId, newOwnerName) {
+  return tasks.map((task) => task.id === taskId || task.ticketNo === taskId ? { ...task, assignedToName: newOwnerName, status: task.status === 'New' ? 'Accepted' : task.status } : task);
+}
+
+function runAssignOldestUnassigned(snapshot) {
+  const task = snapshot.unassignedTasks[0];
+  const target = pickBestTargetMetric(snapshot);
+  if (!task || !target) return 'No unassigned task can be balanced right now.';
+  performAssignment(task.id, target.user, 'Supervisor workload balancing / oldest unassigned task auto-assigned.');
+  return `${task.ticketNo} assigned to ${target.user.name} from the unassigned queue.`;
+}
+
+function runRebalanceOne(snapshot) {
+  const plan = getRebalanceMovePlan(snapshot);
+  if (!plan) return 'No safe rebalance move is available right now.';
+  performAssignment(plan.task.id, plan.to.user, `Supervisor workload balancing / moved from ${plan.from.user.name} to ${plan.to.user.name}.`);
+  return `${plan.task.ticketNo} moved from ${plan.from.user.name} to ${plan.to.user.name}.`;
+}
+
+function runAutoBalance(snapshot, maxSteps = 2) {
+  const plan = getAutoBalancePlan(snapshot, maxSteps);
+  if (!plan.steps.length) return 'Team queue is already balanced enough for now.';
+
+  const messages = [];
+  plan.steps.forEach((step, index) => {
+    const assignee = users.find((user) => user.name === step.assigneeName && user.department === state.currentUser.department);
+    if (!assignee) return;
+    const note = step.type === 'assign-unassigned'
+      ? `Supervisor workload balancing / step ${index + 1}: picked from unassigned queue.`
+      : `Supervisor workload balancing / step ${index + 1}: auto-rebalanced from ${step.fromName} to ${step.assigneeName}.`;
+    performAssignment(step.taskId, assignee, note);
+    messages.push(`${index + 1}. ${step.taskLabel} → ${step.assigneeName}`);
+  });
+
+  return messages.length
+    ? `Auto balance completed:
+${messages.join('\n')}`
+    : 'No balancing step was applied.';
 }
 
 function matchesSupervisorQuickFilter(task) {
@@ -1252,6 +1534,10 @@ function getTeamAssigneeLabel() {
 
 function matchesSelectedAssigneeName(name) {
   return state.teamAssigneeFilter === `name:${name}` || (state.teamAssigneeFilter === '__ME__' && name === state.currentUser.name);
+}
+
+function formatScore(value) {
+  return Number(value || 0).toFixed(1);
 }
 
 function renderTaskDetail() {

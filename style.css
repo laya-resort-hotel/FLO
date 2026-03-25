@@ -888,6 +888,139 @@ button { cursor: pointer; }
   display: grid;
   gap: 12px;
 }
+.supervisor-balance-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.balance-status-grid,
+.balance-recommendations,
+.balance-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.balance-status-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #e4eae4;
+  background: linear-gradient(180deg, #fcfdfc 0%, #ffffff 100%);
+}
+
+.balance-status-card--overloaded {
+  border-color: #efc0c0;
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
+}
+
+.balance-status-card--light {
+  border-color: #cfe5da;
+  background: linear-gradient(180deg, #f6fbf8 0%, #ffffff 100%);
+}
+
+.balance-status-card__label,
+.balance-status-card__meta {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.balance-status-card__value {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.balance-reco-card {
+  border: 1px solid #e4eae4;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fcfdfc 0%, #ffffff 100%);
+  padding: 14px;
+}
+
+.balance-reco-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.balance-reco-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.balance-reco-card__meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.balance-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.balance-badge--overloaded {
+  background: #fff1f1;
+  border-color: #efc0c0;
+  color: #b54545;
+}
+
+.balance-badge--heavy {
+  background: #fff6ea;
+  border-color: #ebcfaa;
+  color: #a96e1b;
+}
+
+.balance-badge--balanced {
+  background: #eef5ff;
+  border-color: #cadcf7;
+  color: #315f9f;
+}
+
+.balance-badge--light,
+.balance-badge--available {
+  background: #eff8f3;
+  border-color: #cfe5da;
+  color: #2f8f5b;
+}
+
+.workload-card__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.workload-card__score {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-weight: 700;
+}
+
+.workload-card--overloaded {
+  border-color: #efc0c0;
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
+}
+
+.workload-card--heavy {
+  border-color: #ebcfaa;
+  background: linear-gradient(180deg, #fffaf3 0%, #ffffff 100%);
+}
+
+.workload-card--light,
+.workload-card--available {
+  border-color: #cfe5da;
+  background: linear-gradient(180deg, #f6fbf8 0%, #ffffff 100%);
+}
 
 .workload-card {
   position: relative;
@@ -1063,5 +1196,28 @@ button { cursor: pointer; }
 
   .board-lanes {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 720px) {
+  .balance-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .balance-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .balance-reco-card__head,
+  .workload-card__status-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .balance-actions .btn,
+  .balance-reco-card .btn {
+    width: 100%;
   }
 }
