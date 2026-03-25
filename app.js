@@ -5,6 +5,17 @@ const STORAGE_KEYS = {
   users: 'lsh13_users'
 };
 
+const FIREBASE_COLLECTIONS = {
+  users: 'users',
+  tasks: 'tasks',
+  modReports: 'modReports'
+};
+const FIREBASE_LOGIN_DOMAIN = 'laya.local';
+const FIREBASE_STORAGE_FOLDERS = {
+  taskMedia: 'task-media',
+  modMedia: 'mod-media'
+};
+
 const OVERDUE_MINUTES = {
   Low: 180,
   Medium: 120,
@@ -513,7 +524,8 @@ const els = {
   modCount: document.getElementById('mod-count'),
   modDetailPanel: document.getElementById('mod-detail-panel'),
   modDetailHint: document.getElementById('mod-detail-hint'),
-  modSummaryGrid: document.getElementById('mod-summary-grid')
+  modSummaryGrid: document.getElementById('mod-summary-grid'),
+  firebaseStatus: document.getElementById('firebase-status')
 };
 
 const state = {
@@ -539,10 +551,7 @@ const state = {
 
 document.addEventListener('DOMContentLoaded', init);
 
-function init() {
-  initializeUsers();
-  initializeTasks();
-  initializeModReports();
+async function init() {
   bindEvents();
   setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO', false, renderCreateAssignmentState);
   setupChipGroup(document.getElementById('priority-chips'), els.taskPriority, 'Medium');
@@ -551,7 +560,7 @@ function init() {
   setupChipGroup(document.getElementById('mod-priority-chips'), els.modPriority, 'High');
   setDatePreset('history', 'today', true);
   setDatePreset('report', 'today', true);
-  restoreSession();
+  await initializeBackend();
 }
 
 function bindEvents() {
@@ -630,6 +639,329 @@ function bindEvents() {
   els.dashGoReports.addEventListener('click', () => showPage('reports'));
 }
 
+
+async function initializeBackend() {
+  if (hasFirebaseConfig()) {
+    try {
+      initializeFirebaseServices();
+      updateFirebaseStatus('กำลังเชื่อมต่อ Firebase…', 'info');
+      try {
+        await state.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      } catch (error) {
+        console.warn('Auth persistence setup failed', error);
+      }
+      attachFirebaseAuthObserver();
+      return;
+    } catch (error) {
+      console.error('Firebase initialization failed', error);
+      updateFirebaseStatus('เชื่อม Firebase ไม่สำเร็จ กำลังใช้โหมด Local Demo', 'warn');
+    }
+  }
+
+  state.backendMode = 'local';
+  initializeUsers();
+  initializeTasks();
+  initializeModReports();
+  restoreSession();
+  updateFirebaseStatus('Local Demo / ยังไม่ได้ใส่ Firebase Config', 'warn');
+}
+
+function hasFirebaseConfig() {
+  const cfg = window.LSH_FIREBASE_CONFIG || {};
+  const enabled = (window.LSH_FIREBASE_OPTIONS?.useFirebase ?? true) !== false;
+  return enabled && typeof window.firebase !== 'undefined' && cfg.apiKey && !String(cfg.apiKey).includes('PASTE_') && cfg.projectId;
+}
+
+function initializeFirebaseServices() {
+  const cfg = window.LSH_FIREBASE_CONFIG;
+  if (!firebase.apps.length) {
+    firebase.initializeApp(cfg);
+  }
+  state.firebaseApp = firebase.app();
+  state.firebaseAuth = firebase.auth();
+  state.firebaseDb = firebase.firestore();
+  state.firebaseStorage = firebase.storage();
+  state.backendMode = 'firebase';
+}
+
+function attachFirebaseAuthObserver() {
+  if (state.authObserverReady || !state.firebaseAuth) return;
+  state.authObserverReady = true;
+  state.firebaseAuth.onAuthStateChanged(async (authUser) => {
+    await handleFirebaseAuthState(authUser);
+  });
+}
+
+async function handleFirebaseAuthState(authUser) {
+  teardownFirebaseSubscriptions();
+
+  if (!authUser) {
+    state.currentUser = null;
+    localStorage.removeItem(STORAGE_KEYS.currentUser);
+    screens.app.classList.remove('screen--active');
+    screens.login.classList.add('screen--active');
+    updateFirebaseStatus(hasFirebaseConfig() ? 'Firebase พร้อมใช้งาน / กรุณาเข้าสู่ระบบ' : 'Local Demo', hasFirebaseConfig() ? 'info' : 'warn');
+    return;
+  }
+
+  updateFirebaseStatus('กำลังโหลดข้อมูลจาก Firebase…', 'info');
+  const employeeId = emailToEmployeeId(authUser.email || '');
+  let profileSnap = await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).get();
+
+  if (!profileSnap.exists) {
+    const fallbackUser = defaultUsers.find((user) => user.employeeId === employeeId);
+    if (fallbackUser) {
+      await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).set(stripUserForFirestore(fallbackUser));
+      profileSnap = await state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).doc(employeeId).get();
+    }
+  }
+
+  if (!profileSnap.exists) {
+    els.loginError.textContent = 'ไม่พบข้อมูลผู้ใช้ใน Firestore (users collection)';
+    els.loginError.classList.remove('hidden');
+    updateFirebaseStatus('ไม่พบ users/{employeeId} ใน Firestore', 'error');
+    await state.firebaseAuth.signOut();
+    return;
+  }
+
+  state.currentUser = normalizeFirebaseUser(profileSnap.data());
+  localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(state.currentUser));
+  await bootstrapFirebaseDemoDataIfNeeded();
+  await loadFirebaseCollections();
+  subscribeFirebaseCollections();
+  els.loginError.classList.add('hidden');
+  updateFirebaseStatus(`เชื่อม Firebase แล้ว / ${state.firebaseApp.options.projectId}`, 'success');
+  showApp();
+}
+
+async function bootstrapFirebaseDemoDataIfNeeded() {
+  if (!state.firebaseDb) return;
+  const shouldSeed = window.LSH_FIREBASE_OPTIONS?.seedDemoDataIfEmpty !== false;
+  if (!shouldSeed) return;
+
+  const [usersSnap, tasksSnap, modSnap] = await Promise.all([
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).limit(1).get(),
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.tasks).limit(1).get(),
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.modReports).limit(1).get()
+  ]);
+
+  if (usersSnap.empty) {
+    await syncCollectionDiff(FIREBASE_COLLECTIONS.users, [], defaultUsers, stripUserForFirestore, getUserDocId);
+  }
+  if (tasksSnap.empty) {
+    await syncCollectionDiff(FIREBASE_COLLECTIONS.tasks, [], seedTasks, stripTaskForFirestore, getTaskDocId);
+  }
+  if (modSnap.empty) {
+    await syncCollectionDiff(FIREBASE_COLLECTIONS.modReports, [], [...seedModReports, ...extraSeedModReports], stripModReportForFirestore, getModReportDocId);
+  }
+}
+
+async function loadFirebaseCollections() {
+  const [usersSnap, tasksSnap, modSnap] = await Promise.all([
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).get(),
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.tasks).get(),
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.modReports).get()
+  ]);
+
+  users = usersSnap.docs.map((doc) => normalizeFirebaseUser({ ...doc.data(), employeeId: doc.id }));
+  state.usersCache = users.map((user) => ({ ...user }));
+  state.tasksCache = tasksSnap.docs.map((doc) => normalizeTask({ ...doc.data(), id: doc.id, ticketNo: doc.data().ticketNo || doc.id }));
+  state.modReportsCache = modSnap.docs.map((doc) => normalizeModReport({ ...doc.data(), id: doc.id }));
+}
+
+function subscribeFirebaseCollections() {
+  if (!state.firebaseDb) return;
+  teardownFirebaseSubscriptions();
+
+  state.unsubscribeFns = [
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.users).onSnapshot((snapshot) => {
+      users = snapshot.docs.map((doc) => normalizeFirebaseUser({ ...doc.data(), employeeId: doc.id }));
+      state.usersCache = users.map((user) => ({ ...user }));
+      if (state.currentUser) {
+        const refreshed = users.find((user) => user.employeeId === state.currentUser.employeeId);
+        if (refreshed) state.currentUser = { ...refreshed };
+      }
+      safeRenderAfterSync();
+    }),
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.tasks).onSnapshot((snapshot) => {
+      state.tasksCache = snapshot.docs.map((doc) => normalizeTask({ ...doc.data(), id: doc.id, ticketNo: doc.data().ticketNo || doc.id }));
+      safeRenderAfterSync();
+    }),
+    state.firebaseDb.collection(FIREBASE_COLLECTIONS.modReports).onSnapshot((snapshot) => {
+      state.modReportsCache = snapshot.docs.map((doc) => normalizeModReport({ ...doc.data(), id: doc.id }));
+      safeRenderAfterSync();
+    })
+  ];
+}
+
+function teardownFirebaseSubscriptions() {
+  (state.unsubscribeFns || []).forEach((unsub) => {
+    try { if (typeof unsub === 'function') unsub(); } catch (error) { console.warn(error); }
+  });
+  state.unsubscribeFns = [];
+}
+
+function safeRenderAfterSync() {
+  if (!state.currentUser || !screens.app.classList.contains('screen--active')) return;
+  renderApp();
+}
+
+function updateFirebaseStatus(message, tone = 'info') {
+  if (!els.firebaseStatus) return;
+  els.firebaseStatus.textContent = message;
+  els.firebaseStatus.dataset.tone = tone;
+}
+
+function employeeIdToEmail(employeeId) {
+  return `${String(employeeId).trim()}@${FIREBASE_LOGIN_DOMAIN}`;
+}
+
+function emailToEmployeeId(email) {
+  return String(email || '').split('@')[0] || '';
+}
+
+function normalizeFirebaseUser(user) {
+  return {
+    employeeId: String(user.employeeId || ''),
+    name: user.name || '-',
+    role: user.role || 'FO Staff',
+    department: user.department || 'FO',
+    active: user.active !== false,
+    password: '',
+    createdAt: user.createdAt || '',
+    updatedAt: user.updatedAt || ''
+  };
+}
+
+function getUserDocId(user) {
+  return String(user.employeeId || '').trim();
+}
+
+function getTaskDocId(task) {
+  return String(task.id || task.ticketNo || '').trim();
+}
+
+function getModReportDocId(report) {
+  return String(report.id || report.reportNo || '').trim();
+}
+
+function stripUserForFirestore(user) {
+  return {
+    employeeId: String(user.employeeId || '').trim(),
+    name: user.name || '-',
+    role: user.role || 'FO Staff',
+    department: user.department || 'FO',
+    active: user.active !== false,
+    updatedAt: new Date().toISOString(),
+    createdAt: user.createdAt || new Date().toISOString()
+  };
+}
+
+function stripTaskForFirestore(task) {
+  const draft = JSON.parse(JSON.stringify(normalizeTask(task)));
+  delete draft.password;
+  return draft;
+}
+
+function stripModReportForFirestore(report) {
+  return JSON.parse(JSON.stringify(normalizeModReport(report)));
+}
+
+async function syncCollectionDiff(collectionName, previousItems, nextItems, serializer, getId) {
+  if (state.backendMode !== 'firebase' || !state.firebaseDb) return;
+  const colRef = state.firebaseDb.collection(collectionName);
+  const batch = state.firebaseDb.batch();
+  const previousIds = new Set((previousItems || []).map((item) => getId(item)).filter(Boolean));
+  const nextIds = new Set();
+
+  (nextItems || []).forEach((item) => {
+    const docId = getId(item);
+    if (!docId) return;
+    nextIds.add(docId);
+    batch.set(colRef.doc(docId), serializer(item), { merge: false });
+  });
+
+  previousIds.forEach((docId) => {
+    if (!nextIds.has(docId)) batch.delete(colRef.doc(docId));
+  });
+
+  await batch.commit();
+}
+
+function handleBackgroundSyncError(error, context) {
+  console.error(`Firebase sync failed: ${context}`, error);
+  updateFirebaseStatus(`Firebase sync error: ${context}`, 'error');
+}
+
+async function prepareAttachmentsForSave(items, folderPrefix) {
+  const list = Array.isArray(items) ? items : [];
+  if (state.backendMode !== 'firebase' || !state.firebaseStorage) {
+    return list.map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      size: item.size,
+      kind: item.kind,
+      dataUrl: item.dataUrl || '',
+      inlineSaved: !!item.dataUrl
+    }));
+  }
+
+  const uploaded = [];
+  for (const item of list) {
+    if (!item.file) {
+      uploaded.push({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        size: item.size,
+        kind: item.kind,
+        url: item.url || item.dataUrl || '',
+        storagePath: item.storagePath || '',
+        inlineSaved: false
+      });
+      continue;
+    }
+    const safeName = sanitizeFileName(item.name || `${item.kind || 'file'}-${Date.now()}`);
+    const filePath = `${folderPrefix}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${safeName}`;
+    const ref = state.firebaseStorage.ref(filePath);
+    const snapshot = await ref.put(item.file);
+    const url = await snapshot.ref.getDownloadURL();
+    uploaded.push({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      size: item.size,
+      kind: item.kind,
+      url,
+      storagePath: filePath,
+      inlineSaved: false
+    });
+  }
+  return uploaded;
+}
+
+function sanitizeFileName(name) {
+  return String(name || 'file').replace(/[^a-zA-Z0-9._-]+/g, '_');
+}
+
+function getMediaPreviewSrc(item) {
+  return item.url || item.downloadURL || item.dataUrl || '';
+}
+
+function getFriendlyAuthError(error) {
+  const code = error?.code || '';
+  const map = {
+    'auth/invalid-credential': 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง',
+    'auth/invalid-email': 'รูปแบบ Employee ID สำหรับ Firebase ไม่ถูกต้อง',
+    'auth/user-not-found': 'ไม่พบบัญชีผู้ใช้นี้ใน Firebase Authentication',
+    'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
+    'auth/too-many-requests': 'มีการลองเข้าสู่ระบบหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง',
+    'auth/network-request-failed': 'เครือข่ายมีปัญหา กรุณาตรวจสอบอินเทอร์เน็ต'
+  };
+  return map[code] || error?.message || 'เข้าสู่ระบบไม่สำเร็จ';
+}
+
 function initializeTasks() {
   const existing = localStorage.getItem(STORAGE_KEYS.tasks);
   if (!existing) {
@@ -653,12 +985,23 @@ function initializeUsers() {
 }
 
 function getUsers() {
+  if (state.backendMode === 'firebase') return state.usersCache.map((user) => ({ ...user }));
   return JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
 }
 
 function saveUsers(nextUsers) {
-  users = nextUsers.map((user) => ({ ...user }));
-  localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+  const normalized = nextUsers.map((user) => ({ ...user }));
+  const previous = users.map((user) => ({ ...user }));
+  users = normalized.map((user) => ({ ...user }));
+
+  if (state.backendMode === 'firebase') {
+    state.usersCache = users.map((user) => ({ ...user }));
+    syncCollectionDiff(FIREBASE_COLLECTIONS.users, previous, state.usersCache, stripUserForFirestore, getUserDocId)
+      .catch((error) => handleBackgroundSyncError(error, 'users'));
+  } else {
+    localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+  }
+
   if (state.currentUser) {
     const refreshed = users.find((user) => user.employeeId === state.currentUser.employeeId);
     if (refreshed) {
@@ -669,6 +1012,7 @@ function saveUsers(nextUsers) {
 }
 
 function restoreSession() {
+  if (state.backendMode === 'firebase') return;
   const savedUser = localStorage.getItem(STORAGE_KEYS.currentUser);
   if (!savedUser) return;
   const parsed = JSON.parse(savedUser);
@@ -678,12 +1022,34 @@ function restoreSession() {
   showApp();
 }
 
-function onLogin() {
+async function onLogin() {
   const employeeId = els.loginEmployeeId.value.trim();
   const password = els.loginPassword.value.trim();
-  const matchedUser = users.find((u) => u.employeeId === employeeId && u.password === password);
 
+  if (!employeeId || !password) {
+    els.loginError.textContent = 'กรุณากรอกรหัสพนักงานและรหัสผ่าน';
+    els.loginError.classList.remove('hidden');
+    return;
+  }
+
+  if (state.backendMode === 'firebase' && state.firebaseAuth) {
+    try {
+      els.loginBtn.disabled = true;
+      els.loginError.classList.add('hidden');
+      await state.firebaseAuth.signInWithEmailAndPassword(employeeIdToEmail(employeeId), password);
+    } catch (error) {
+      console.error(error);
+      els.loginError.textContent = getFriendlyAuthError(error);
+      els.loginError.classList.remove('hidden');
+    } finally {
+      els.loginBtn.disabled = false;
+    }
+    return;
+  }
+
+  const matchedUser = users.find((u) => u.employeeId === employeeId && u.password === password);
   if (!matchedUser) {
+    els.loginError.textContent = 'Invalid employee ID or password.';
     els.loginError.classList.remove('hidden');
     return;
   }
@@ -694,9 +1060,17 @@ function onLogin() {
   showApp();
 }
 
-function logout() {
+async function logout() {
   state.currentUser = null;
   localStorage.removeItem(STORAGE_KEYS.currentUser);
+  teardownFirebaseSubscriptions();
+  if (state.backendMode === 'firebase' && state.firebaseAuth) {
+    try {
+      await state.firebaseAuth.signOut();
+    } catch (error) {
+      console.error('Firebase sign-out failed', error);
+    }
+  }
   screens.app.classList.remove('screen--active');
   screens.login.classList.add('screen--active');
   els.loginPassword.value = '';
@@ -2220,11 +2594,20 @@ function renderTaskMedia(task) {
 }
 
 function getModReports() {
+  if (state.backendMode === 'firebase') return state.modReportsCache.map((report) => normalizeModReport(report));
   return (JSON.parse(localStorage.getItem(STORAGE_KEYS.modReports) || '[]')).map(normalizeModReport);
 }
 
 function saveModReports(reports) {
-  localStorage.setItem(STORAGE_KEYS.modReports, JSON.stringify(reports));
+  const normalized = reports.map((report) => normalizeModReport(report));
+  if (state.backendMode === 'firebase') {
+    const previous = state.modReportsCache.map((report) => ({ ...report }));
+    state.modReportsCache = normalized.map((report) => ({ ...report }));
+    syncCollectionDiff(FIREBASE_COLLECTIONS.modReports, previous, state.modReportsCache, stripModReportForFirestore, getModReportDocId)
+      .catch((error) => handleBackgroundSyncError(error, 'modReports'));
+    return;
+  }
+  localStorage.setItem(STORAGE_KEYS.modReports, JSON.stringify(normalized));
 }
 
 function normalizeModReport(report) {
@@ -2253,6 +2636,7 @@ function normalizeModReport(report) {
 
 function getModReportsRawSafe() {
   try {
+    if (state.backendMode === 'firebase') return state.modReportsCache.map((report) => ({ ...report }));
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.modReports) || '[]');
   } catch (error) {
     return [];
@@ -2280,7 +2664,8 @@ async function serializeMediaFile(file) {
     size: file.size,
     kind: file.type.startsWith('video/') ? 'video' : 'image',
     dataUrl: '',
-    inlineSaved: false
+    inlineSaved: false,
+    file
   };
   if (file.size > MOD_MEDIA_INLINE_LIMIT) return base;
   const dataUrl = await readFileAsDataUrl(file);
@@ -2308,11 +2693,11 @@ function renderMediaGallery(items, options = {}) {
     <div class="mod-media-card">
       <div class="mod-media-card__preview">
         ${item.kind === 'video'
-          ? (item.dataUrl
-              ? `<video src="${escapeHtml(item.dataUrl)}" controls muted playsinline></video>`
+          ? (getMediaPreviewSrc(item)
+              ? `<video src="${escapeHtml(getMediaPreviewSrc(item))}" controls muted playsinline></video>`
               : `<div class="mod-media-placeholder">Video file<br>${escapeHtml(item.name)}</div>`)
-          : (item.dataUrl
-              ? `<img src="${escapeHtml(item.dataUrl)}" alt="${escapeHtml(item.name)}" />`
+          : (getMediaPreviewSrc(item)
+              ? `<img src="${escapeHtml(getMediaPreviewSrc(item))}" alt="${escapeHtml(item.name)}" />`
               : `<div class="mod-media-placeholder">Image file<br>${escapeHtml(item.name)}</div>`)}
       </div>
       <div class="mod-media-card__meta">
@@ -2353,7 +2738,7 @@ async function submitModReport() {
   const reports = getModReports();
   const now = new Date().toISOString();
   const reportNo = generateModReportNo(reports);
-  const attachments = (state.modDraftMedia || []).map((item) => ({ ...item }));
+  const attachments = await prepareAttachmentsForSave(state.modDraftMedia || [], `${FIREBASE_STORAGE_FOLDERS.modMedia}/${reportNo}`);
 
   let linkedTaskId = '';
   let linkedTaskTicketNo = '';
@@ -3567,11 +3952,20 @@ function getVisibleTasks(tasks) {
 }
 
 function getTasks() {
+  if (state.backendMode === 'firebase') return state.tasksCache.map((task) => normalizeTask(task));
   return (JSON.parse(localStorage.getItem(STORAGE_KEYS.tasks) || '[]')).map(normalizeTask);
 }
 
 function saveTasks(tasks) {
-  localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(tasks));
+  const normalized = tasks.map((task) => normalizeTask(task));
+  if (state.backendMode === 'firebase') {
+    const previous = state.tasksCache.map((task) => ({ ...task }));
+    state.tasksCache = normalized.map((task) => ({ ...task }));
+    syncCollectionDiff(FIREBASE_COLLECTIONS.tasks, previous, state.tasksCache, stripTaskForFirestore, getTaskDocId)
+      .catch((error) => handleBackgroundSyncError(error, 'tasks'));
+    return;
+  }
+  localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(normalized));
 }
 
 function getTaskById(taskId) {
@@ -3674,16 +4068,17 @@ function clearDetailWorkMediaDraft() {
   renderDetailWorkMediaPreview();
 }
 
-function saveDetailWorkMedia() {
+async function saveDetailWorkMedia() {
   const task = getTaskById(state.currentTaskId);
   if (!task) return;
   if (!state.detailDraftMedia.length) {
     alert('Please choose photo or video first.');
     return;
   }
+  const uploadedAttachments = await prepareAttachmentsForSave(state.detailDraftMedia, `${FIREBASE_STORAGE_FOLDERS.taskMedia}/${task.id}`);
   updateTask(task.id, (draft) => {
-    draft.mediaAttachments = [...(draft.mediaAttachments || []), ...state.detailDraftMedia.map((item) => ({ ...item }))];
-    draft.logs.unshift(createLog('Media Added', `Attached ${state.detailDraftMedia.length} work media file(s).`));
+    draft.mediaAttachments = [...(draft.mediaAttachments || []), ...uploadedAttachments];
+    draft.logs.unshift(createLog('Media Added', `Attached ${uploadedAttachments.length} work media file(s).`));
     draft.updatedAt = new Date().toISOString();
     return draft;
   });
