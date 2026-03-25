@@ -1360,3 +1360,25 @@ button { cursor: pointer; }
   .chip-group--grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mod-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* MOD summary cards visibility fix */
+.mod-hero #mod-summary-grid .stat-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.mod-hero #mod-summary-grid .stat-card__label {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.mod-hero #mod-summary-grid .stat-card__value {
+  color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+
+.mod-hero #mod-summary-grid .stat-card:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
