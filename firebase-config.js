@@ -1,9 +1,10 @@
 window.LSH_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyApyayXDDy4REtpxYbib_JOgEdrasCVtaI",
-  authDomain: "laya-flo-c4251.firebaseapp.com",
-  projectId: "laya-flo-c4251",
-  storageBucket: "laya-flo-c4251.firebasestorage.app",
-  appId: "1:318686158785:web:139f59523d71c5b1b1d940",
+  apiKey: 'PASTE_API_KEY_HERE',
+  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
+  projectId: 'YOUR_PROJECT_ID',
+  storageBucket: 'YOUR_PROJECT_ID.firebasestorage.app',
+  messagingSenderId: 'PASTE_MESSAGING_SENDER_ID',
+  appId: 'PASTE_APP_ID_HERE'
 };
 
 window.LSH_FIREBASE_OPTIONS = {

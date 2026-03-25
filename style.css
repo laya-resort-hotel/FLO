@@ -1287,6 +1287,21 @@ button { cursor: pointer; }
   color: white;
 }
 
+.mod-hero .stat-card {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+}
+
+.mod-hero .stat-card__label {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.mod-hero .stat-card__value {
+  color: white;
+}
+
 .mod-hero__eyebrow {
   margin: 0 0 8px;
   font-size: 12px;
