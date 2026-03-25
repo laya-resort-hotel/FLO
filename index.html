@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,35 +16,35 @@
         <div class="login-brand">
           <div class="login-logo">LSH</div>
           <h1>Laya Service Hub v1</h1>
-          <p>Hotel Operations Task Management</p>
+          <p>ระบบติดตามงานปฏิบัติการโรงแรม</p>
         </div>
 
         <section class="card login-card">
           <div class="field">
-            <label class="label" for="login-employee-id">Employee ID</label>
-            <input id="login-employee-id" class="input" type="text" placeholder="Enter employee ID" />
+            <label class="label" for="login-employee-id">รหัสพนักงาน</label>
+            <input id="login-employee-id" class="input" type="text" placeholder="กรอกรหัสพนักงาน" />
           </div>
 
           <div class="field">
-            <label class="label" for="login-password">Password</label>
-            <input id="login-password" class="input" type="password" placeholder="Enter password" />
+            <label class="label" for="login-password">รหัสผ่าน</label>
+            <input id="login-password" class="input" type="password" placeholder="กรอกรหัสผ่าน" />
           </div>
 
-          <button id="login-btn" class="btn btn-primary btn-full">Login</button>
-          <p id="login-error" class="form-error hidden">Invalid employee ID or password.</p>
+          <button id="login-btn" class="btn btn-primary btn-full">เข้าสู่ระบบ</button>
+          <p id="login-error" class="form-error hidden">รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง</p>
 
           <div class="login-help-row">
-            <button class="link-btn" type="button">Contact Admin</button>
+            <button class="link-btn" type="button">ติดต่อแอดมิน</button>
           </div>
         </section>
 
         <div class="login-footer">
-          <span>v1.12.4 MOD Home Polish</span>
+          <span>v1.12.0 MOD Checklist</span>
           <span>Local Demo</span>
         </div>
 
         <section class="card demo-accounts">
-          <h2>Demo Accounts</h2>
+          <h2>บัญชีทดลอง</h2>
           <ul>
             <li><strong>FO Manager:</strong> 11025 / 1234</li>
             <li><strong>FO Supervisor:</strong> 11026 / 1234</li>
@@ -66,8 +66,8 @@
         <div class="topbar__main">
           <button id="back-btn" class="icon-btn hidden" type="button" aria-label="Go back">&larr;</button>
           <div>
-            <h1 id="topbar-title" class="topbar__title">Good Morning</h1>
-            <p id="topbar-subtitle" class="topbar__subtitle">Department</p>
+            <h1 id="topbar-title" class="topbar__title">สวัสดี</h1>
+            <p id="topbar-subtitle" class="topbar__subtitle">แผนก</p>
           </div>
         </div>
         <div class="topbar__actions">
@@ -77,57 +77,50 @@
 
       <main class="page">
                 <section id="page-home" class="page-view page-view--active">
-          <section id="mod-home-hero" class="section mod-home hidden">
-            <div class="card mod-home__hero">
-              <div class="mod-home__header">
-                <div>
-                  <span class="mod-home__eyebrow">Manager on Duty</span>
-                  <h2 class="mod-home__title">Hotel Daily Inspection Control Room</h2>
-                  <p class="mod-home__subtitle">Track findings, open follow-up, and monitor critical hotel issues across all departments in one place.</p>
-                </div>
-                <div id="mod-home-shift-chip" class="mod-home__shift">MOD Today</div>
-              </div>
-              <div id="mod-home-highlights" class="mod-home__highlights"></div>
-              <div class="mod-home__actions">
-                <button id="mod-home-open-report-btn" class="btn btn-primary" type="button">Open New Finding</button>
-                <button id="mod-home-view-findings-btn" class="btn btn-secondary" type="button">Today's Findings</button>
-                <button id="mod-home-high-risk-btn" class="btn btn-secondary" type="button">High Risk Items</button>
-                <button id="mod-home-followup-btn" class="btn btn-secondary" type="button">MOD Follow-up</button>
-              </div>
-            </div>
-          </section>
-
-          <section id="home-summary-grid" class="summary-grid">
+          <section class="summary-grid">
             <article class="card stat-card">
-              <span id="stat-new-label" class="stat-card__label">New</span>
+              <span class="stat-card__label">งานใหม่</span>
               <strong id="stat-new" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span id="stat-progress-label" class="stat-card__label">In Progress</span>
+              <span class="stat-card__label">กำลังดำเนินการ</span>
               <strong id="stat-progress" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span id="stat-done-label" class="stat-card__label">Done Today</span>
+              <span class="stat-card__label">เสร็จวันนี้</span>
               <strong id="stat-done" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span id="stat-urgent-label" class="stat-card__label">Urgent</span>
+              <span class="stat-card__label">ด่วน</span>
               <strong id="stat-urgent" class="stat-card__value">0</strong>
             </article>
           </section>
 
           <section class="actions-stack">
-            <button id="home-create-btn" class="btn btn-primary btn-full" type="button">+ Create Task</button>
-            <button id="home-view-tasks-btn" class="btn btn-secondary btn-full" type="button">View My Tasks</button>
+            <button id="home-create-btn" class="btn btn-primary btn-full" type="button">+ เปิดงานใหม่</button>
+            <button id="home-view-tasks-btn" class="btn btn-secondary btn-full" type="button">ดูงานของแผนก</button>
+            <button id="home-mod-board-quick-btn" class="btn btn-secondary btn-full hidden" type="button">ดูบอร์ดงานจาก MOD</button>
+          </section>
+
+
+          <section id="home-mod-board" class="section hidden">
+            <div class="section__header section__header--home">
+              <div>
+                <h2 id="home-mod-board-title" class="section__title">บอร์ดงานจาก MOD</h2>
+                <span id="home-mod-board-hint" class="section__hint">ประเด็นจากการตรวจ MOD ในความรับผิดชอบของคุณ</span>
+              </div>
+              <button id="home-mod-board-btn" class="link-btn" type="button">เปิดบอร์ด</button>
+            </div>
+            <div id="home-mod-board-list" class="task-list"></div>
           </section>
 
           <section class="section">
             <div class="section__header section__header--home">
               <div>
-                <h2 id="home-section-1-title" class="section__title">Need Attention</h2>
-                <span id="home-section-1-hint" class="section__hint">Priority tasks</span>
+                <h2 id="home-section-1-title" class="section__title">ต้องติดตาม</h2>
+                <span id="home-section-1-hint" class="section__hint">งานสำคัญที่ควรดูต่อ</span>
               </div>
-              <button id="home-section-1-btn" class="link-btn" type="button">Open</button>
+              <button id="home-section-1-btn" class="link-btn" type="button">เปิดอยู่</button>
             </div>
             <div id="home-section-1-list" class="task-list"></div>
           </section>
@@ -135,10 +128,10 @@
           <section class="section">
             <div class="section__header section__header--home">
               <div>
-                <h2 id="home-section-2-title" class="section__title">My Queue</h2>
-                <span id="home-section-2-hint" class="section__hint">Tasks waiting on me</span>
+                <h2 id="home-section-2-title" class="section__title">งานของฉัน</h2>
+                <span id="home-section-2-hint" class="section__hint">งานที่รอดำเนินการโดยฉัน</span>
               </div>
-              <button id="home-section-2-btn" class="link-btn" type="button">Open</button>
+              <button id="home-section-2-btn" class="link-btn" type="button">เปิดอยู่</button>
             </div>
             <div id="home-section-2-list" class="task-list"></div>
           </section>
@@ -146,10 +139,10 @@
           <section class="section">
             <div class="section__header section__header--home">
               <div>
-                <h2 id="home-section-3-title" class="section__title">Urgent / Overdue</h2>
-                <span id="home-section-3-hint" class="section__hint">Escalation needed</span>
+                <h2 id="home-section-3-title" class="section__title">ด่วน / เกินเวลา</h2>
+                <span id="home-section-3-hint" class="section__hint">งานที่ควรเร่งหรือประสานต่อ</span>
               </div>
-              <button id="home-section-3-btn" class="link-btn" type="button">Open</button>
+              <button id="home-section-3-btn" class="link-btn" type="button">เปิดอยู่</button>
             </div>
             <div id="home-section-3-list" class="task-list"></div>
           </section>
@@ -157,8 +150,8 @@
           <section class="section">
             <div class="section__header">
               <div>
-                <h2 id="recent-activity-title" class="section__title">Recent Activity</h2>
-                <span id="recent-activity-hint" class="section__hint">Latest updates</span>
+                <h2 id="recent-activity-title" class="section__title">ความเคลื่อนไหวล่าสุด</h2>
+                <span id="recent-activity-hint" class="section__hint">อัปเดตล่าสุด</span>
               </div>
             </div>
             <div id="recent-activity" class="card activity-list"></div>
@@ -172,11 +165,11 @@
               <strong id="dash-open" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span class="stat-card__label">In Progress</span>
+              <span class="stat-card__label">กำลังดำเนินการ</span>
               <strong id="dash-progress" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card stat-card--danger">
-              <span class="stat-card__label">Overdue</span>
+              <span class="stat-card__label">เกินเวลา</span>
               <strong id="dash-overdue" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card stat-card--success">
@@ -220,14 +213,45 @@
         </section>
 
         <section id="page-tasks" class="page-view">
+
+          <section id="mod-action-board" class="section mod-action-board hidden">
+            <div class="card mod-action-board__hero">
+              <div class="section__header section__header--home">
+                <div>
+                  <h2 class="section__title">บอร์ดงานจาก MOD</h2>
+                  <span id="mod-action-board-hint" class="section__hint">รายการตรวจประจำวันของแผนกคุณ</span>
+                </div>
+                <button id="mod-action-open-all" class="link-btn" type="button">แสดงงานจาก MOD</button>
+              </div>
+              <div id="mod-action-summary" class="summary-grid"></div>
+            </div>
+
+            <div class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">รายการติดตามของแผนก</h3>
+                  <span id="mod-action-count" class="section__hint">0 items</span>
+                </div>
+              </div>
+              <div id="mod-action-filters" class="chips-scroll">
+                <button class="chip is-active" type="button" data-mod-board="all">ทั้งหมด</button>
+                <button class="chip" type="button" data-mod-board="open">เปิดอยู่</button>
+                <button class="chip" type="button" data-mod-board="high">เสี่ยงสูง</button>
+                <button class="chip" type="button" data-mod-board="media">มีรูป/วิดีโอ</button>
+                <button class="chip" type="button" data-mod-board="mine">มอบหมายให้ฉัน</button>
+              </div>
+              <div id="mod-action-list" class="task-list"></div>
+            </div>
+          </section>
+
           <section id="supervisor-board" class="section supervisor-board hidden">
             <div class="card supervisor-board__hero">
               <div class="section__header section__header--home">
                 <div>
-                  <h2 class="section__title">Supervisor Task Board</h2>
-                  <span id="team-filter-hint" class="section__hint">Track team queue, ownership, and workload in one place</span>
+                  <h2 class="section__title">บอร์ดสั่งงานหัวหน้า</h2>
+                  <span id="team-filter-hint" class="section__hint">ติดตามคิวงาน เจ้าของงาน และภาระงานทีมในหน้าเดียว</span>
                 </div>
-                <button id="team-filter-clear" class="link-btn" type="button">Reset Team Filter</button>
+                <button id="team-filter-clear" class="link-btn" type="button">ล้างตัวกรองทีม</button>
               </div>
               <div id="supervisor-board-summary" class="summary-grid"></div>
             </div>
@@ -235,19 +259,19 @@
             <div class="card supervisor-board__filters">
               <div class="section__header section__header--home">
                 <div>
-                  <h3 class="block-title">Team Filter</h3>
-                  <span class="section__hint">Choose a queue view or focus on one owner</span>
+                  <h3 class="block-title">ตัวกรองทีม</h3>
+                  <span class="section__hint">เลือกมุมมองคิวงานหรือโฟกัสพนักงานคนเดียว</span>
                 </div>
               </div>
               <div id="team-quick-filters" class="chips-scroll">
-                <button class="chip is-active" type="button" data-team-quick="all">All Team</button>
-                <button class="chip" type="button" data-team-quick="active">Active</button>
-                <button class="chip" type="button" data-team-quick="unassigned">Unassigned</button>
-                <button class="chip" type="button" data-team-quick="assignedByMe">Assigned by Me</button>
-                <button class="chip" type="button" data-team-quick="overdue">Overdue</button>
+                <button class="chip is-active" type="button" data-team-quick="all">ทั้งทีม</button>
+                <button class="chip" type="button" data-team-quick="active">งานค้างดำเนินการ</button>
+                <button class="chip" type="button" data-team-quick="unassigned">ยังไม่มอบหมาย</button>
+                <button class="chip" type="button" data-team-quick="assignedByMe">ฉันเป็นคนมอบหมาย</button>
+                <button class="chip" type="button" data-team-quick="overdue">เกินเวลา</button>
               </div>
               <div class="field">
-                <label class="label" for="team-assignee-filter">Owner</label>
+                <label class="label" for="team-assignee-filter">ผู้รับผิดชอบ</label>
                 <select id="team-assignee-filter" class="select"></select>
               </div>
             </div>
@@ -255,8 +279,8 @@
             <div class="card">
               <div class="section__header section__header--home">
                 <div>
-                  <h3 class="block-title">Workload by Staff</h3>
-                  <span class="section__hint">Tap a card to focus the tasks list on one owner</span>
+                  <h3 class="block-title">ภาระงานรายคน</h3>
+                  <span class="section__hint">แตะการ์ดเพื่อดูงานของพนักงานคนนั้น</span>
                 </div>
               </div>
               <div id="supervisor-workload-cards" class="workload-grid"></div>
@@ -265,8 +289,8 @@
             <div id="supervisor-balance-panel" class="card supervisor-balance-panel">
               <div class="section__header section__header--home">
                 <div>
-                  <h3 class="block-title">Workload Balancing</h3>
-                  <span class="section__hint">Quick rebalance for unassigned queue and overloaded staff</span>
+                  <h3 class="block-title">กระจายภาระงาน</h3>
+                  <span class="section__hint">ช่วยกระจายงานค้างและลดงานล้นของพนักงาน</span>
                 </div>
               </div>
               <div id="supervisor-balance-status" class="balance-status-grid"></div>
@@ -277,8 +301,8 @@
             <div class="card">
               <div class="section__header section__header--home">
                 <div>
-                  <h3 class="block-title">Task Board</h3>
-                  <span class="section__hint">Live team queue by status</span>
+                  <h3 class="block-title">กระดานงาน</h3>
+                  <span class="section__hint">คิวงานสดแยกตามสถานะ</span>
                 </div>
               </div>
               <div id="supervisor-board-lanes" class="board-lanes"></div>
@@ -286,25 +310,25 @@
           </section>
 
           <nav id="task-status-tabs" class="tabs-scroll">
-            <button class="tab is-active" type="button" data-status="All">All</button>
-            <button class="tab" type="button" data-status="New">New</button>
-            <button class="tab" type="button" data-status="Accepted">Accepted</button>
-            <button class="tab" type="button" data-status="In Progress">In Progress</button>
-            <button class="tab" type="button" data-status="Done">Done</button>
-            <button class="tab" type="button" data-status="Closed">Closed</button>
+            <button class="tab is-active" type="button" data-status="All">ทั้งหมด</button>
+            <button class="tab" type="button" data-status="New">งานใหม่</button>
+            <button class="tab" type="button" data-status="Accepted">รับงานแล้ว</button>
+            <button class="tab" type="button" data-status="In Progress">กำลังดำเนินการ</button>
+            <button class="tab" type="button" data-status="Done">เสร็จแล้ว</button>
+            <button class="tab" type="button" data-status="Closed">ปิดงาน</button>
           </nav>
 
           <div class="chips-scroll">
-            <button id="task-filter-high" class="chip" type="button">High+</button>
+            <button id="task-filter-high" class="chip" type="button">ด่วน+</button>
           </div>
 
           <div id="task-context-bar" class="task-context-bar hidden">
-            <span id="task-context-label" class="task-context-bar__label">Filtered view</span>
-            <button id="task-context-clear" class="link-btn" type="button">Clear filter</button>
+            <span id="task-context-label" class="task-context-bar__label">มุมมองที่ถูกกรอง</span>
+            <button id="task-context-clear" class="link-btn" type="button">ล้างตัวกรอง</button>
           </div>
 
           <div class="field">
-            <input id="tasks-search" class="input" type="text" placeholder="Search room / ticket / subject" />
+            <input id="tasks-search" class="input" type="text" placeholder="ค้นหาเลขห้อง / เลขงาน / หัวข้อ" />
           </div>
 
           <div id="tasks-list" class="task-list"></div>
@@ -315,73 +339,73 @@
             <div class="task-hero__top">
               <div>
                 <p id="detail-ticket" class="task-card__ticket">LSH-0000</p>
-                <h2 id="detail-subject" class="task-hero__title">Task Subject</h2>
-                <p id="detail-location" class="task-hero__meta">Location / Department</p>
+                <h2 id="detail-subject" class="task-hero__title">หัวข้องาน</h2>
+                <p id="detail-location" class="task-hero__meta">สถานที่ / แผนก</p>
               </div>
             </div>
             <div class="task-hero__badges">
               <span id="detail-priority-badge" class="badge badge-priority-medium">Medium</span>
-              <span id="detail-status-badge" class="badge badge-status-new">New</span>
+              <span id="detail-status-badge" class="badge badge-status-new">งานใหม่</span>
             </div>
           </section>
 
           <section class="card">
-            <h3 class="block-title">Details</h3>
+            <h3 class="block-title">รายละเอียด</h3>
             <p id="detail-description" class="detail-description">-</p>
             <dl class="detail-list">
-              <div><dt>Department</dt><dd id="detail-department">-</dd></div>
-              <div><dt>Category</dt><dd id="detail-category">-</dd></div>
-              <div><dt>Opened by</dt><dd id="detail-opened-by">-</dd></div>
-              <div><dt>Assigned to</dt><dd id="detail-assigned-to">-</dd></div>
-              <div><dt>Assigned by</dt><dd id="detail-assigned-by">-</dd></div>
-              <div><dt>Source</dt><dd id="detail-source">-</dd></div>
-              <div><dt>Created at</dt><dd id="detail-created-at">-</dd></div>
-              <div><dt>Updated at</dt><dd id="detail-updated-at">-</dd></div>
+              <div><dt>แผนก</dt><dd id="detail-department">-</dd></div>
+              <div><dt>หมวด</dt><dd id="detail-category">-</dd></div>
+              <div><dt>ผู้เปิดงาน</dt><dd id="detail-opened-by">-</dd></div>
+              <div><dt>ผู้รับผิดชอบ</dt><dd id="detail-assigned-to">-</dd></div>
+              <div><dt>ผู้มอบหมาย</dt><dd id="detail-assigned-by">-</dd></div>
+              <div><dt>ที่มา</dt><dd id="detail-source">-</dd></div>
+              <div><dt>สร้างเมื่อ</dt><dd id="detail-created-at">-</dd></div>
+              <div><dt>อัปเดตเมื่อ</dt><dd id="detail-updated-at">-</dd></div>
             </dl>
           </section>
 
           <section class="card">
-            <h3 class="block-title">Actions</h3>
+            <h3 class="block-title">การดำเนินการ</h3>
             <div id="detail-actions" class="action-grid"></div>
           </section>
 
           <section class="card hidden" id="detail-assign-card">
             <div class="section__header">
               <div>
-                <h3 class="block-title">Supervisor Assignment</h3>
-                <span id="detail-assign-hint" class="section__hint">Assign task to a team member</span>
+                <h3 class="block-title">มอบหมายงานโดยหัวหน้า</h3>
+                <span id="detail-assign-hint" class="section__hint">เลือกมอบหมายงานให้สมาชิกทีม</span>
               </div>
             </div>
             <div class="field">
-              <label class="label" for="detail-assign-select">Assign to</label>
+              <label class="label" for="detail-assign-select">มอบหมายให้</label>
               <select id="detail-assign-select" class="select"></select>
             </div>
             <div class="field">
-              <label class="label" for="detail-assign-note">Assignment Note</label>
-              <textarea id="detail-assign-note" class="textarea" placeholder="Optional handover or follow-up note"></textarea>
+              <label class="label" for="detail-assign-note">หมายเหตุมอบหมายงาน</label>
+              <textarea id="detail-assign-note" class="textarea" placeholder="โน้ตส่งต่องานหรือข้อสั่งการเพิ่มเติม"></textarea>
             </div>
             <div class="action-row action-row--two">
-              <button id="detail-assign-btn" class="btn btn-primary" type="button">Assign Task</button>
-              <button id="detail-assign-focus-btn" class="btn btn-secondary" type="button">Jump to Notes</button>
+              <button id="detail-assign-btn" class="btn btn-primary" type="button">มอบหมายงาน</button>
+              <button id="detail-assign-focus-btn" class="btn btn-secondary" type="button">ไปที่ช่องบันทึก</button>
             </div>
           </section>
 
           <section id="detail-media-card" class="card hidden">
-            <h3 class="block-title">Media Evidence</h3>
+            <h3 class="block-title">หลักฐานรูป / วิดีโอ</h3>
             <div id="detail-media-list" class="mod-media-grid"></div>
           </section>
 
           <section class="card">
-            <h3 class="block-title">Timeline</h3>
+            <h3 class="block-title">ไทม์ไลน์</h3>
             <div id="detail-timeline" class="timeline"></div>
           </section>
 
           <section class="card">
             <div class="field">
-              <label class="label" for="detail-note-input">Add Note</label>
-              <textarea id="detail-note-input" class="textarea" placeholder="Type note here..."></textarea>
+              <label class="label" for="detail-note-input">เพิ่มบันทึก</label>
+              <textarea id="detail-note-input" class="textarea" placeholder="พิมพ์บันทึกที่นี่..."></textarea>
             </div>
-            <button id="detail-save-note-btn" class="btn btn-primary btn-full" type="button">Save Note</button>
+            <button id="detail-save-note-btn" class="btn btn-primary btn-full" type="button">บันทึกโน้ต</button>
           </section>
         </section>
 
@@ -389,14 +413,14 @@
           <form id="create-task-form" class="form-stack">
             <section class="card">
               <div class="field">
-                <label class="label" for="task-location">Room No. / Location</label>
-                <input id="task-location" class="input" type="text" placeholder="A203 / Lobby / Restaurant" required />
+                <label class="label" for="task-location">เลขห้อง / จุดที่พบ</label>
+                <input id="task-location" class="input" type="text" placeholder="A203 / ล็อบบี้ / ห้องอาหาร" required />
               </div>
             </section>
 
             <section class="card">
               <div class="field">
-                <label class="label">Department</label>
+                <label class="label">แผนก</label>
                 <div class="chip-group chip-group--grid4" id="department-chips">
                   <button class="chip" type="button" data-value="FO">FO</button>
                   <button class="chip" type="button" data-value="FB">FB</button>
@@ -409,27 +433,27 @@
 
             <section class="card">
               <div class="field">
-                <label class="label" for="task-category">Category</label>
+                <label class="label" for="task-category">หมวด</label>
                 <select id="task-category" class="select">
-                  <option value="Guest Request">Guest Request</option>
-                  <option value="Complaint">Complaint</option>
-                  <option value="Cleaning">Cleaning</option>
-                  <option value="Repair">Repair</option>
-                  <option value="Setup">Setup</option>
-                  <option value="Lost &amp; Found">Lost &amp; Found</option>
-                  <option value="Other">Other</option>
+                  <option value="Guest Request">คำขอจากแขก</option>
+                  <option value="Complaint">ข้อร้องเรียน</option>
+                  <option value="Cleaning">ทำความสะอาด</option>
+                  <option value="Repair">ซ่อมบำรุง</option>
+                  <option value="Setup">จัดเตรียม</option>
+                  <option value="Lost &amp; Found">ของหาย / พบของ</option>
+                  <option value="Other">อื่นๆ</option>
                 </select>
               </div>
             </section>
 
             <section class="card">
               <div class="field">
-                <label class="label">Priority</label>
+                <label class="label">ระดับความสำคัญ</label>
                 <div class="chip-group chip-group--grid4" id="priority-chips">
-                  <button class="chip" type="button" data-value="Low">Low</button>
-                  <button class="chip" type="button" data-value="Medium">Medium</button>
-                  <button class="chip" type="button" data-value="High">High</button>
-                  <button class="chip" type="button" data-value="Urgent">Urgent</button>
+                  <button class="chip" type="button" data-value="Low">ต่ำ</button>
+                  <button class="chip" type="button" data-value="Medium">กลาง</button>
+                  <button class="chip" type="button" data-value="High">สูง</button>
+                  <button class="chip" type="button" data-value="Urgent">ด่วน</button>
                 </div>
                 <input id="task-priority" type="hidden" required />
               </div>
@@ -437,45 +461,45 @@
 
             <section class="card">
               <div class="field">
-                <label class="label" for="task-subject">Subject</label>
-                <input id="task-subject" class="input" type="text" placeholder="Air conditioner not cold" required />
+                <label class="label" for="task-subject">หัวข้อ</label>
+                <input id="task-subject" class="input" type="text" placeholder="เช่น แอร์ไม่เย็น" required />
               </div>
             </section>
 
             <section class="card">
               <div class="field">
-                <label class="label" for="task-detail">Detail</label>
-                <textarea id="task-detail" class="textarea" placeholder="Describe issue or request"></textarea>
+                <label class="label" for="task-detail">รายละเอียด</label>
+                <textarea id="task-detail" class="textarea" placeholder="อธิบายปัญหาหรือคำขอ"></textarea>
               </div>
             </section>
 
             <section class="card">
               <div class="field">
-                <label class="label">Photo</label>
+                <label class="label">รูปถ่าย</label>
                 <div class="action-row action-row--two">
-                  <button class="btn btn-secondary" type="button">Take Photo</button>
-                  <button class="btn btn-secondary" type="button">Upload File</button>
+                  <button class="btn btn-secondary" type="button">ถ่ายรูป</button>
+                  <button class="btn btn-secondary" type="button">อัปโหลดไฟล์</button>
                 </div>
-                <p class="helper-text">Prototype only - photo upload UI placeholder.</p>
+                <p class="helper-text">เวอร์ชันต้นแบบ - ส่วนอัปโหลดรูปจริงยังอยู่ในหน้า MOD</p>
               </div>
             </section>
 
             <section id="create-assign-wrap" class="card hidden">
               <div class="field">
-                <label class="label" for="create-assign-select">Assign Now</label>
+                <label class="label" for="create-assign-select">มอบหมายทันที</label>
                 <select id="create-assign-select" class="select"></select>
-                <p id="create-assign-helper" class="helper-text">Supervisor can assign tasks to their own department team.</p>
+                <p id="create-assign-helper" class="helper-text">หัวหน้าสามารถมอบหมายงานให้ทีมในแผนกของตัวเองได้</p>
               </div>
             </section>
 
             <section class="card meta-card">
-              <span id="opened-by-text">Opened by: -</span>
+              <span id="opened-by-text">เปิดงานโดย: -</span>
             </section>
           </form>
 
           <div class="sticky-submit-bar">
-            <button id="cancel-create-btn" class="btn btn-secondary" type="button">Cancel</button>
-            <button id="submit-create-btn" class="btn btn-primary" type="submit" form="create-task-form">Create Task</button>
+            <button id="cancel-create-btn" class="btn btn-secondary" type="button">ยกเลิก</button>
+            <button id="submit-create-btn" class="btn btn-primary" type="submit" form="create-task-form">สร้างงาน</button>
           </div>
         </section>
 
@@ -496,7 +520,7 @@
               <button class="chip is-active" type="button" data-preset="today">Today</button>
               <button class="chip" type="button" data-preset="7days">Last 7 Days</button>
               <button class="chip" type="button" data-preset="month">This Month</button>
-              <button class="chip" type="button" data-preset="all">All</button>
+              <button class="chip" type="button" data-preset="all">ทั้งหมด</button>
             </div>
 
             <div class="field">
@@ -505,9 +529,9 @@
 
             <div class="filters-grid">
               <div class="field">
-                <label class="label" for="history-department">Department</label>
+                <label class="label" for="history-department">แผนก</label>
                 <select id="history-department" class="select">
-                  <option value="All">All</option>
+                  <option value="All">ทั้งหมด</option>
                   <option value="FO">FO</option>
                   <option value="FB">FB</option>
                   <option value="HK">HK</option>
@@ -517,10 +541,10 @@
               <div class="field">
                 <label class="label" for="history-status">Status</label>
                 <select id="history-status" class="select">
-                  <option value="All">All</option>
-                  <option value="New">New</option>
+                  <option value="All">ทั้งหมด</option>
+                  <option value="New">งานใหม่</option>
                   <option value="Accepted">Accepted</option>
-                  <option value="In Progress">In Progress</option>
+                  <option value="In Progress">กำลังดำเนินการ</option>
                   <option value="Done">Done</option>
                   <option value="Closed">Closed</option>
                 </select>
@@ -528,11 +552,11 @@
               <div class="field">
                 <label class="label" for="history-priority">Priority</label>
                 <select id="history-priority" class="select">
-                  <option value="All">All</option>
+                  <option value="All">ทั้งหมด</option>
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>
-                  <option value="Urgent">Urgent</option>
+                  <option value="Urgent">ด่วน</option>
                 </select>
               </div>
             </div>
@@ -606,7 +630,7 @@
                     <option value="Service">Service</option>
                     <option value="Security">Security</option>
                     <option value="Hygiene">Hygiene</option>
-                    <option value="Other">Other</option>
+                    <option value="Other">อื่นๆ</option>
                   </select>
                 </div>
               </div>
@@ -614,10 +638,10 @@
               <div class="field">
                 <label class="label">Severity</label>
                 <div class="chip-group chip-group--grid4" id="mod-priority-chips">
-                  <button class="chip" type="button" data-value="Low">Low</button>
-                  <button class="chip" type="button" data-value="Medium">Medium</button>
-                  <button class="chip" type="button" data-value="High">High</button>
-                  <button class="chip" type="button" data-value="Urgent">Urgent</button>
+                  <button class="chip" type="button" data-value="Low">ต่ำ</button>
+                  <button class="chip" type="button" data-value="Medium">กลาง</button>
+                  <button class="chip" type="button" data-value="High">สูง</button>
+                  <button class="chip" type="button" data-value="Urgent">ด่วน</button>
                 </div>
                 <input id="mod-priority" type="hidden" required />
               </div>
@@ -676,10 +700,10 @@
               </div>
             </div>
             <div id="mod-filter-chips" class="chips-scroll">
-              <button class="chip is-active" type="button" data-mod-filter="all">All</button>
-              <button class="chip" type="button" data-mod-filter="open">Open</button>
-              <button class="chip" type="button" data-mod-filter="high">High+</button>
-              <button class="chip" type="button" data-mod-filter="media">With Media</button>
+              <button class="chip is-active" type="button" data-mod-filter="all">ทั้งหมด</button>
+              <button class="chip" type="button" data-mod-filter="open">เปิดอยู่</button>
+              <button class="chip" type="button" data-mod-filter="high">ด่วน+</button>
+              <button class="chip" type="button" data-mod-filter="media">มีรูป/วิดีโอ</button>
               <button class="chip" type="button" data-mod-filter="mine">Created by Me</button>
             </div>
             <div class="field">
@@ -750,7 +774,7 @@
               <button class="chip is-active" type="button" data-preset="today">Today</button>
               <button class="chip" type="button" data-preset="7days">Last 7 Days</button>
               <button class="chip" type="button" data-preset="month">This Month</button>
-              <button class="chip" type="button" data-preset="all">All</button>
+              <button class="chip" type="button" data-preset="all">ทั้งหมด</button>
             </div>
 
             <div class="report-mode-row">
@@ -764,9 +788,9 @@
 
             <div class="filters-grid filters-grid--two">
               <div class="field">
-                <label class="label" for="report-department">Department</label>
+                <label class="label" for="report-department">แผนก</label>
                 <select id="report-department" class="select">
-                  <option value="All">All</option>
+                  <option value="All">ทั้งหมด</option>
                   <option value="FO">FO</option>
                   <option value="FB">FB</option>
                   <option value="HK">HK</option>
@@ -776,10 +800,10 @@
               <div class="field">
                 <label class="label" for="report-status">Status</label>
                 <select id="report-status" class="select">
-                  <option value="All">All</option>
-                  <option value="New">New</option>
+                  <option value="All">ทั้งหมด</option>
+                  <option value="New">งานใหม่</option>
                   <option value="Accepted">Accepted</option>
-                  <option value="In Progress">In Progress</option>
+                  <option value="In Progress">กำลังดำเนินการ</option>
                   <option value="Done">Done</option>
                   <option value="Closed">Closed</option>
                 </select>
@@ -801,12 +825,12 @@
               <span class="report-kpi-card__foot">Completion count</span>
             </article>
             <article class="card stat-card report-kpi-card report-kpi-card--info">
-              <span class="stat-card__label">Open</span>
+              <span class="stat-card__label">เปิดอยู่</span>
               <strong id="report-open" class="stat-card__value">0</strong>
               <span class="report-kpi-card__foot">Still active</span>
             </article>
             <article class="card stat-card report-kpi-card report-kpi-card--danger">
-              <span class="stat-card__label">Overdue</span>
+              <span class="stat-card__label">เกินเวลา</span>
               <strong id="report-overdue" class="stat-card__value">0</strong>
               <span class="report-kpi-card__foot">Need escalation</span>
             </article>
@@ -897,19 +921,19 @@
       <nav id="bottom-nav" class="bottom-nav bottom-nav--count-4">
         <button id="nav-home" class="bottom-nav__item is-active" type="button">
           <span class="bottom-nav__icon">&#x2302;</span>
-          <span id="nav-home-label">Home</span>
+          <span id="nav-home-label">หน้าหลัก</span>
         </button>
         <button id="nav-tasks" class="bottom-nav__item" type="button">
           <span class="bottom-nav__icon">&#x2630;</span>
-          <span>Tasks</span>
+          <span>งาน</span>
         </button>
         <button id="nav-create" class="bottom-nav__item" type="button">
           <span class="bottom-nav__icon">+</span>
-          <span>Create</span>
+          <span>เปิดงาน</span>
         </button>
         <button id="nav-history" class="bottom-nav__item" type="button">
           <span class="bottom-nav__icon">&#x23F1;</span>
-          <span id="nav-history-label">History</span>
+          <span id="nav-history-label">ประวัติ</span>
         </button>
         <button id="nav-mod" class="bottom-nav__item hidden" type="button">
           <span class="bottom-nav__icon">&#x2714;</span>
@@ -917,7 +941,7 @@
         </button>
         <button id="nav-reports" class="bottom-nav__item hidden" type="button">
           <span class="bottom-nav__icon">&#x25A3;</span>
-          <span>Reports</span>
+          <span>รายงาน</span>
         </button>
       </nav>
     </section>

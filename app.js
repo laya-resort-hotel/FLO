@@ -238,6 +238,44 @@ const seedModReports = [
       { action: 'Reported', note: 'Opened during MOD pool inspection.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 35 * 60000).toISOString() },
       { action: 'Follow-up Started', note: 'Engineering informed and area blocked.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 20 * 60000).toISOString() }
     ]
+  }),
+  normalizeModReport({
+    id: 'mod_seed_3',
+    reportNo: 'MOD-20260325-0003',
+    area: 'Front Desk',
+    location: 'Lobby counter',
+    department: 'FO',
+    category: 'Guest Request',
+    priority: 'High',
+    subject: 'Counter signage not updated for airport transfer',
+    detail: 'Airport transfer information card still shows old timing and should be updated before afternoon arrival.',
+    actionNote: 'Please replace printed signage and brief FO team on current timing.',
+    status: 'Open',
+    openedByName: 'Mook',
+    openedByDepartment: 'Hotel Ops',
+    createdAt: new Date(Date.now() - 55 * 60000).toISOString(),
+    updatedAt: new Date(Date.now() - 45 * 60000).toISOString(),
+    attachments: [],
+    logs: [{ action: 'Reported', note: 'Found during lobby round.', byName: 'Mook', byDepartment: 'Hotel Ops', createdAt: new Date(Date.now() - 55 * 60000).toISOString() }]
+  }),
+  normalizeModReport({
+    id: 'mod_seed_4',
+    reportNo: 'MOD-20260325-0004',
+    area: 'Restaurant',
+    location: 'Breakfast station',
+    department: 'FB',
+    category: 'Setup',
+    priority: 'Medium',
+    subject: 'Jam label tray incomplete',
+    detail: 'Breakfast condiment tray missing some labels and should be corrected before next service.',
+    actionNote: 'Please relabel the tray and verify station presentation standard.',
+    status: 'Open',
+    openedByName: 'Noi',
+    openedByDepartment: 'FO',
+    createdAt: new Date(Date.now() - 95 * 60000).toISOString(),
+    updatedAt: new Date(Date.now() - 80 * 60000).toISOString(),
+    attachments: [],
+    logs: [{ action: 'Reported', note: 'Found during breakfast outlet check.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 95 * 60000).toISOString() }]
   })
 ];
 
@@ -278,6 +316,7 @@ const els = {
   topbarSubtitle: document.getElementById('topbar-subtitle'),
   openedByText: document.getElementById('opened-by-text'),
   homeViewTasksBtn: document.getElementById('home-view-tasks-btn'),
+  homeModBoardQuickBtn: document.getElementById('home-mod-board-quick-btn'),
   homeSection1Title: document.getElementById('home-section-1-title'),
   homeSection1Hint: document.getElementById('home-section-1-hint'),
   homeSection1Btn: document.getElementById('home-section-1-btn'),
@@ -439,7 +478,7 @@ const state = {
   currentModReportId: null,
   modFilter: 'all',
   modSearch: '',
-  modDraftMedia: [],
+  modDraftไฟล์แนบ: [],
   modActionFilter: 'all'
 };
 
@@ -474,6 +513,7 @@ function bindEvents() {
   els.navReports.addEventListener('click', () => showPage('reports'));
   els.homeCreateBtn.addEventListener('click', () => showPage('create'));
   els.homeViewTasksBtn.addEventListener('click', openDepartmentTasksFromHome);
+  if (els.homeModBoardQuickBtn) els.homeModBoardQuickBtn.addEventListener('click', openModBoardFromHome);
   if (els.homeModBoardBtn) els.homeModBoardBtn.addEventListener('click', openModBoardFromHome);
   if (els.homeModBoardList) els.homeModBoardList.addEventListener('click', onModActionBoardClick);
   els.cancelCreateBtn.addEventListener('click', () => showPage(getDefaultLandingPage()));
@@ -651,14 +691,14 @@ function setActiveNav(pageName) {
 
 function updateTopbar(pageName) {
   const titleMap = {
-    home: [`Good Morning, ${state.currentUser.name}`, `${state.currentUser.department} / ${state.currentUser.role}`],
-    dashboard: ['Manager Dashboard', 'Hotel operations overview'],
-    create: ['Create Task', 'Open a new request'],
-    tasks: ['Tasks', getTaskPageSubtitle()],
-    detail: ['Task Detail', 'View status, notes, and action'],
-    history: ['History', 'Search previous tasks'],
-    mod: ['MOD Checklist Report', 'Open findings from daily inspection'],
-    reports: ['Reports', 'Summary and export']
+    home: [`สวัสดี, ${state.currentUser.name}`, `${thDepartment(state.currentUser.department)} / ${thRole(state.currentUser.role)}`],
+    dashboard: ['แดชบอร์ดผู้จัดการ', 'ภาพรวมงานปฏิบัติการโรงแรม'],
+    create: ['เปิดงานใหม่', 'สร้างคำขอหรือแจ้งงานใหม่'],
+    tasks: ['รายการงาน', getTaskPageSubtitle()],
+    detail: ['รายละเอียดงาน', 'ดูสถานะ บันทึก และการดำเนินการ'],
+    history: ['ประวัติงาน', 'ค้นหางานที่ผ่านมา'],
+    mod: ['MOD Checklist Report', 'รายการตรวจและประเด็นที่พบประจำวัน'],
+    reports: ['รายงาน', 'สรุปผลและส่งออกข้อมูล']
   };
   const [title, subtitle] = titleMap[pageName] || ['Laya Service Hub', ''];
   els.topbarTitle.textContent = title;
@@ -743,22 +783,24 @@ function renderHomeModActionBoard() {
   if (!els.homeModBoard) return;
   if (!shouldShowModActionBoard()) {
     els.homeModBoard.classList.add('hidden');
+    if (els.homeModBoardQuickBtn) els.homeModBoardQuickBtn.classList.add('hidden');
     return;
   }
 
   const reports = getFilteredModActionReports();
   const department = state.currentUser?.department || 'Department';
   els.homeModBoard.classList.remove('hidden');
-  if (els.homeModBoardTitle) els.homeModBoardTitle.textContent = `MOD Action Board / ${department}`;
+  if (els.homeModBoardQuickBtn) els.homeModBoardQuickBtn.classList.remove('hidden');
+  if (els.homeModBoardTitle) els.homeModBoardTitle.textContent = `บอร์ดงานจาก MOD / ${thDepartment(department)}`;
   if (els.homeModBoardHint) {
     els.homeModBoardHint.textContent = isSupervisor()
-      ? 'Department findings from MOD round for supervisor follow-up'
-      : 'Issues from MOD round for your department responsibility';
+      ? 'ประเด็นที่ MOD ตรวจพบของแผนกคุณสำหรับติดตามโดยหัวหน้างาน'
+      : 'ประเด็นที่ MOD ตรวจพบในความรับผิดชอบของแผนกคุณ';
   }
   const preview = reports.slice(0, 3);
   els.homeModBoardList.innerHTML = preview.length
     ? preview.map((report) => modActionReportCardHTML(report, { compact: true })).join('')
-    : emptyStateHTML('No MOD follow-up now', 'No open MOD finding for your department right now.');
+    : emptyStateHTML('ยังไม่มีรายการจาก MOD', 'ขณะนี้ยังไม่มีประเด็นเปิดอยู่จาก MOD สำหรับแผนกของคุณ');
 }
 
 function openModBoardFromHome() {
@@ -790,9 +832,9 @@ function renderRecentActivity(tasks, preset = 'departmentRecent') {
 function getHomeConfig() {
   const department = state.currentUser?.department;
   const base = {
-    tasksButtonLabel: `View ${department} Tasks`,
-    activityTitle: `Latest ${department} Updates`,
-    activityHint: 'Recent team activity',
+    tasksButtonLabel: `ดูงาน ${thDepartment(department)}`,
+    activityTitle: `อัปเดตล่าสุด ${thDepartment(department)}`,
+    activityHint: 'ความเคลื่อนไหวล่าสุดของทีม',
     activityPreset: 'departmentRecent',
     sections: []
   };
@@ -800,33 +842,33 @@ function getHomeConfig() {
   if (isSupervisor()) {
     return {
       ...base,
-      tasksButtonLabel: `View ${department} Team Queue`,
-      activityTitle: `Latest ${department} Team Updates`,
-      activityHint: 'Team workload and supervisor follow-up',
+      tasksButtonLabel: `ดูคิวงานทีม ${thDepartment(department)}`,
+      activityTitle: `อัปเดตทีม ${thDepartment(department)} ล่าสุด`,
+      activityHint: 'ภาระงานทีมและรายการติดตามของหัวหน้างาน',
       sections: [
         {
-          title: 'New / Unassigned',
-          hint: 'Open tasks waiting for supervisor assignment',
-          buttonLabel: 'Open Queue',
+          title: 'งานใหม่ / ยังไม่มอบหมาย',
+          hint: 'งานใหม่ที่รอหัวหน้ามอบหมาย',
+          buttonLabel: 'เปิดคิวงาน',
           preset: 'supervisorNewUnassigned',
-          emptyTitle: 'No new unassigned task',
-          emptyDescription: 'All fresh requests already have an owner.'
+          emptyTitle: 'ไม่มีงานใหม่ที่ยังไม่มอบหมาย',
+          emptyDescription: 'คำขอใหม่ทั้งหมดมีผู้รับผิดชอบแล้ว'
         },
         {
-          title: 'Team In Progress',
-          hint: 'Accepted and in-progress work for your team',
-          buttonLabel: 'Open Team',
+          title: 'งานทีมที่กำลังดำเนินการ',
+          hint: 'งานที่รับแล้วและกำลังทำของทีมคุณ',
+          buttonLabel: 'ดูงานทีม',
           preset: 'supervisorTeamActive',
-          emptyTitle: 'No active team task',
-          emptyDescription: 'No accepted or in-progress work in the team right now.'
+          emptyTitle: 'ไม่มีงานทีมที่กำลังเดินอยู่',
+          emptyDescription: 'ตอนนี้ทีมยังไม่มีงานที่กำลังดำเนินการ'
         },
         {
-          title: 'Assigned by Me / Overdue',
-          hint: 'Track delegation and escalations',
-          buttonLabel: 'Open Follow-up',
+          title: 'ฉันเป็นผู้มอบหมาย / เกินเวลา',
+          hint: 'ติดตามงานที่สั่งและงานเร่งด่วน',
+          buttonLabel: 'เปิดรายการติดตาม',
           preset: 'supervisorAssignedOrOverdue',
-          emptyTitle: 'No supervisor follow-up',
-          emptyDescription: 'Nothing overdue and no active delegated work from this account.'
+          emptyTitle: 'ไม่มีรายการติดตามของหัวหน้า',
+          emptyDescription: 'ไม่มีงานเกินเวลาและไม่มีงานที่บัญชีนี้กำลังติดตาม'
         }
       ]
     };
@@ -835,32 +877,32 @@ function getHomeConfig() {
   if (department === 'FO') {
     return {
       ...base,
-      tasksButtonLabel: 'View FO Tasks',
+      tasksButtonLabel: 'ดูงาน FO',
       activityTitle: 'Latest FO Updates',
       sections: [
         {
-          title: 'Need Follow-up',
-          hint: 'Opened by FO or waiting on FO follow-up',
-          buttonLabel: 'Open Follow-up',
+          title: 'ต้องติดตาม',
+          hint: 'งานที่ FO เปิดหรือกำลังรอ FO ติดตาม',
+          buttonLabel: 'เปิดรายการติดตาม',
           preset: 'foFollowUp',
-          emptyTitle: 'No follow-up now',
-          emptyDescription: 'FO follow-up queue is clear.'
+          emptyTitle: 'ตอนนี้ไม่มีงานที่ต้องติดตาม',
+          emptyDescription: 'คิวติดตามของ FO ว่างอยู่'
         },
         {
-          title: 'Recently Created by Me',
-          hint: 'Newest tickets opened by this account',
-          buttonLabel: 'Open Mine',
+          title: 'งานที่ฉันเพิ่งเปิด',
+          hint: 'งานล่าสุดที่เปิดโดยบัญชีนี้',
+          buttonLabel: 'ดูงานของฉัน',
           preset: 'createdByMe',
-          emptyTitle: 'No recent tickets',
-          emptyDescription: 'This account has not created a task yet.'
+          emptyTitle: 'ยังไม่มีงานล่าสุด',
+          emptyDescription: 'บัญชีนี้ยังไม่ได้เปิดงาน'
         },
         {
           title: 'Urgent / Overdue',
-          hint: 'Guest-facing cases needing escalation',
-          buttonLabel: 'Open Urgent',
+          hint: 'งานที่เกี่ยวกับแขกและควรเร่งแก้ไข',
+          buttonLabel: 'ดูงานด่วน',
           preset: 'foUrgentOverdue',
-          emptyTitle: 'No urgent FO cases',
-          emptyDescription: 'Nothing overdue or urgent in FO right now.'
+          emptyTitle: 'ไม่มีงาน FO ด่วนตอนนี้',
+          emptyDescription: 'ตอนนี้ FO ไม่มีงานด่วนหรือเกินเวลา'
         }
       ]
     };
@@ -869,32 +911,32 @@ function getHomeConfig() {
   if (department === 'HK') {
     return {
       ...base,
-      tasksButtonLabel: 'View HK Tasks',
+      tasksButtonLabel: 'ดูงาน HK',
       activityTitle: 'Latest HK Updates',
       sections: [
         {
-          title: 'New Tasks for HK',
-          hint: 'Fresh requests waiting for housekeeping',
-          buttonLabel: 'Open New',
+          title: 'งานใหม่ของ HK',
+          hint: 'คำขอใหม่ที่รอฝ่ายแม่บ้าน',
+          buttonLabel: 'ดูงานใหม่',
           preset: 'deptNew',
-          emptyTitle: 'No new HK tasks',
-          emptyDescription: 'No new housekeeping request in queue.'
+          emptyTitle: 'ไม่มีงาน HK ใหม่',
+          emptyDescription: 'ไม่มีคำขอใหม่ของแม่บ้านในคิว'
         },
         {
-          title: 'My In Progress',
-          hint: 'Tasks currently worked by me',
-          buttonLabel: 'Open Mine',
+          title: 'งานของฉันที่กำลังทำ',
+          hint: 'งานที่ฉันกำลังดำเนินการอยู่',
+          buttonLabel: 'ดูงานของฉัน',
           preset: 'myInProgress',
-          emptyTitle: 'Nothing in progress',
-          emptyDescription: 'You do not have an active HK task yet.'
+          emptyTitle: 'ยังไม่มีงานที่กำลังทำ',
+          emptyDescription: 'คุณยังไม่มีงาน HK ที่กำลังดำเนินการ'
         },
         {
           title: 'Urgent / Overdue',
-          hint: 'High-pressure tasks needing faster closure',
-          buttonLabel: 'Open Urgent',
+          hint: 'งานเร่งด่วนที่ควรปิดให้เร็ว',
+          buttonLabel: 'ดูงานด่วน',
           preset: 'deptUrgentOverdue',
-          emptyTitle: 'No urgent HK tasks',
-          emptyDescription: 'HK queue is under control.'
+          emptyTitle: 'ไม่มีงาน HK ด่วน',
+          emptyDescription: 'คิวงาน HK อยู่ในระดับปกติ'
         }
       ]
     };
@@ -903,32 +945,32 @@ function getHomeConfig() {
   if (department === 'Engineering') {
     return {
       ...base,
-      tasksButtonLabel: 'View Engineering Tasks',
+      tasksButtonLabel: 'ดูงานวิศวกรรม',
       activityTitle: 'Latest Engineering Updates',
       sections: [
         {
-          title: 'Urgent Repairs',
-          hint: 'Critical engineering tickets first',
-          buttonLabel: 'Open Repairs',
+          title: 'งานซ่อมด่วน',
+          hint: 'จัดลำดับงานวิศวกรรมเร่งด่วนก่อน',
+          buttonLabel: 'ดูงานซ่อม',
           preset: 'engUrgentRepairs',
-          emptyTitle: 'No urgent repairs',
-          emptyDescription: 'No urgent repair ticket at the moment.'
+          emptyTitle: 'ไม่มีงานซ่อมด่วน',
+          emptyDescription: 'ตอนนี้ไม่มีงานซ่อมด่วน'
         },
         {
-          title: 'My In Progress',
-          hint: 'Repairs currently assigned to me',
-          buttonLabel: 'Open Mine',
+          title: 'งานของฉันที่กำลังทำ',
+          hint: 'งานซ่อมที่มอบหมายให้ฉัน',
+          buttonLabel: 'ดูงานของฉัน',
           preset: 'myInProgress',
-          emptyTitle: 'No engineering task in progress',
-          emptyDescription: 'Your active repair queue is empty.'
+          emptyTitle: 'ไม่มีงานวิศวกรรมที่กำลังดำเนินการ',
+          emptyDescription: 'คิวงานซ่อมของคุณว่างอยู่'
         },
         {
-          title: 'New Eng / Overdue',
-          hint: 'New requests and overdue items',
-          buttonLabel: 'Open Queue',
+          title: 'งานวิศวกรรมใหม่ / เกินเวลา',
+          hint: 'คำขอใหม่และรายการเกินเวลา',
+          buttonLabel: 'เปิดคิวงาน',
           preset: 'engNewOrOverdue',
-          emptyTitle: 'No new or overdue Eng task',
-          emptyDescription: 'Engineering queue is balanced right now.'
+          emptyTitle: 'ไม่มีงานวิศวกรรมใหม่หรือเกินเวลา',
+          emptyDescription: 'คิวงานวิศวกรรมอยู่ในระดับสมดุล'
         }
       ]
     };
@@ -937,32 +979,32 @@ function getHomeConfig() {
   if (department === 'FB') {
     return {
       ...base,
-      tasksButtonLabel: 'View FB Tasks',
+      tasksButtonLabel: 'ดูงาน FB',
       activityTitle: 'Latest FB Updates',
       sections: [
         {
-          title: 'New FB Requests',
-          hint: 'Fresh requests for food and beverage team',
-          buttonLabel: 'Open New',
+          title: 'งานใหม่ของ FB',
+          hint: 'คำขอใหม่สำหรับทีมอาหารและเครื่องดื่ม',
+          buttonLabel: 'ดูงานใหม่',
           preset: 'deptNew',
-          emptyTitle: 'No new FB requests',
-          emptyDescription: 'There is no new FB request waiting now.'
+          emptyTitle: 'ไม่มีคำขอ FB ใหม่',
+          emptyDescription: 'ตอนนี้ไม่มีคำขอใหม่ของ FB'
         },
         {
-          title: 'VIP Requests',
-          hint: 'VIP arrivals and special setup tasks',
-          buttonLabel: 'Open VIP',
+          title: 'งาน VIP',
+          hint: 'งานรับแขก VIP และงานจัดเตรียมพิเศษ',
+          buttonLabel: 'ดูงาน VIP',
           preset: 'fbVip',
-          emptyTitle: 'No VIP request now',
-          emptyDescription: 'No VIP setup or special request at the moment.'
+          emptyTitle: 'ตอนนี้ไม่มีงาน VIP',
+          emptyDescription: 'ตอนนี้ไม่มีงานจัดเตรียมหรือคำขอพิเศษ VIP'
         },
         {
-          title: 'My In Progress / Overdue',
-          hint: 'Active work and anything needing escalation',
-          buttonLabel: 'Open Active',
+          title: 'งานของฉันที่กำลังทำ / Overdue',
+          hint: 'งานที่กำลังทำและงานที่ควรเร่งติดตาม',
+          buttonLabel: 'ดูงานที่กำลังทำ',
           preset: 'fbMyInProgressOrOverdue',
-          emptyTitle: 'No active FB follow-up',
-          emptyDescription: 'Your FB queue is clear for now.'
+          emptyTitle: 'ไม่มีงาน FB ที่ต้องติดตาม',
+          emptyDescription: 'คิวงาน FB ของคุณว่างอยู่'
         }
       ]
     };
@@ -973,20 +1015,20 @@ function getHomeConfig() {
     sections: [
       {
         title: 'Need Attention',
-        hint: 'Open tasks for this department',
-        buttonLabel: 'Open Queue',
+        hint: 'งานเปิดอยู่ของแผนกนี้',
+        buttonLabel: 'เปิดคิวงาน',
         preset: 'deptOpen'
       },
       {
-        title: 'My In Progress',
+        title: 'งานของฉันที่กำลังทำ',
         hint: 'Active tasks assigned to me',
-        buttonLabel: 'Open Mine',
+        buttonLabel: 'ดูงานของฉัน',
         preset: 'myInProgress'
       },
       {
         title: 'Urgent / Overdue',
-        hint: 'Items requiring attention first',
-        buttonLabel: 'Open Urgent',
+        hint: 'รายการที่ควรสนใจก่อน',
+        buttonLabel: 'ดูงานด่วน',
         preset: 'deptUrgentOverdue'
       }
     ]
@@ -1072,31 +1114,31 @@ function getTaskContextFilteredTasks(tasks) {
 function getTaskContextLabel() {
   const labels = {
     all: '',
-    deptOnly: `${state.currentUser?.department || 'Department'} tasks`,
-    deptOpen: `${state.currentUser?.department || 'Department'} open tasks`,
-    modDept: `${state.currentUser?.department || 'Department'} MOD action board`,
-    modMine: 'My MOD follow-up',
-    modHighRisk: `${state.currentUser?.department || 'Department'} MOD high risk`,
-    deptNew: `${state.currentUser?.department || 'Department'} new tasks`,
-    myInProgress: 'My in progress tasks',
-    createdByMe: 'Recently created by me',
-    supervisorNewUnassigned: `${state.currentUser?.department || 'Department'} new / unassigned`,
-    supervisorTeamActive: `${state.currentUser?.department || 'Department'} team active`,
-    supervisorAssignedOrOverdue: 'Assigned by me / overdue',
-    deptUrgentOverdue: `${state.currentUser?.department || 'Department'} urgent / overdue`,
-    foFollowUp: 'FO need follow-up',
-    foUrgentOverdue: 'FO urgent / overdue',
-    engUrgentRepairs: 'Engineering urgent repairs',
-    engNewOrOverdue: 'Engineering new / overdue',
-    fbVip: 'FB VIP requests',
-    fbMyInProgressOrOverdue: 'FB active / overdue'
+    deptOnly: `งาน ${thDepartment(state.currentUser?.department || 'Department')}`,
+    deptOpen: `งานเปิดอยู่ / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    modDept: `บอร์ดงานจาก MOD / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    modMine: 'รายการ MOD ที่เกี่ยวข้องกับฉัน',
+    modHighRisk: `MOD เสี่ยงสูง / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    deptNew: `งานใหม่ / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    myInProgress: 'งานของฉันที่กำลังทำ',
+    createdByMe: 'งานที่ฉันเพิ่งเปิด',
+    supervisorNewUnassigned: `งานใหม่ / ยังไม่มอบหมาย / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    supervisorTeamActive: `งานทีมที่กำลังดำเนินการ / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    supervisorAssignedOrOverdue: 'ฉันเป็นผู้มอบหมาย / เกินเวลา',
+    deptUrgentOverdue: `งานด่วน / เกินเวลา / ${thDepartment(state.currentUser?.department || 'Department')}`,
+    foFollowUp: 'FO ต้องติดตาม',
+    foUrgentOverdue: 'FO ด่วน / เกินเวลา',
+    engUrgentRepairs: 'งานซ่อมด่วนวิศวกรรม',
+    engNewOrOverdue: 'วิศวกรรม งานใหม่ / เกินเวลา',
+    fbVip: 'FB งาน VIP',
+    fbMyInProgressOrOverdue: 'FB งานที่กำลังทำ / เกินเวลา'
   };
   return labels[state.taskContext] || '';
 }
 
 function getTaskPageSubtitle() {
   const label = getTaskContextLabel();
-  return label ? `Filter and track work orders / ${label}` : 'Filter and track work orders';
+  return label ? `กรองและติดตามงาน / ${label}` : 'กรองและติดตามงาน';
 }
 
 function renderDashboardPage() {
@@ -1169,8 +1211,8 @@ function renderModActionBoard() {
   els.modActionBoard.classList.remove('hidden');
   if (els.modActionBoardHint) {
     els.modActionBoardHint.textContent = isSupervisor()
-      ? `${department} findings from MOD round for team action`
-      : `${department} findings from MOD round in your responsibility`;
+      ? `รายการจาก MOD ของแผนก ${thDepartment(department)} สำหรับทีมคุณ`
+      : `รายการจาก MOD ของแผนก ${thDepartment(department)} ในความรับผิดชอบของคุณ`;
   }
 
   const assignedToMe = allReports.filter((report) => {
@@ -1179,10 +1221,10 @@ function renderModActionBoard() {
   }).length;
 
   els.modActionSummary.innerHTML = [
-    { label: 'Open Findings', value: allReports.filter((report) => !['Resolved', 'Closed'].includes(report.status)).length },
-    { label: 'High Risk', value: allReports.filter((report) => ['High', 'Urgent'].includes(report.priority) && !['Resolved', 'Closed'].includes(report.status)).length },
-    { label: 'Linked Tasks', value: allReports.filter((report) => !!getLinkedTaskForModReport(report)).length },
-    { label: 'Assigned to Me', value: assignedToMe }
+    { label: 'ประเด็นเปิดอยู่', value: allReports.filter((report) => !['Resolved', 'Closed'].includes(report.status)).length },
+    { label: 'เสี่ยงสูง', value: allReports.filter((report) => ['High', 'Urgent'].includes(report.priority) && !['Resolved', 'Closed'].includes(report.status)).length },
+    { label: 'เชื่อมกับงานแล้ว', value: allReports.filter((report) => !!getLinkedTaskForModReport(report)).length },
+    { label: 'มอบหมายให้ฉัน', value: assignedToMe }
   ].map((card) => `
     <article class="card stat-card mod-action-stat">
       <span class="stat-card__label">${escapeHtml(card.label)}</span>
@@ -1190,10 +1232,10 @@ function renderModActionBoard() {
     </article>
   `).join('');
 
-  els.modActionCount.textContent = `${reports.length} item${reports.length === 1 ? '' : 's'}`;
+  els.modActionCount.textContent = `${reports.length} รายการ`;
   els.modActionList.innerHTML = reports.length
     ? reports.map((report) => modActionReportCardHTML(report)).join('')
-    : emptyStateHTML('No matching MOD follow-up', 'Try another MOD filter or check all department tasks.');
+    : emptyStateHTML('ไม่พบรายการ MOD ที่ตรงกับตัวกรอง', 'ลองเปลี่ยนตัวกรองหรือเปิดดูงานของแผนกทั้งหมด');
   syncModActionFilterChips();
 }
 
@@ -1252,34 +1294,34 @@ function isTaskFromMod(task) {
 function modActionReportCardHTML(report, options = {}) {
   const linkedTask = getLinkedTaskForModReport(report);
   const compact = Boolean(options.compact);
-  const assignedLabel = linkedTask?.assignedToName || 'Unassigned';
-  const actionNote = report.actionNote || 'No immediate action note.';
+  const assignedLabel = linkedTask?.assignedToName || 'ยังไม่มอบหมาย';
+  const actionNote = report.actionNote || 'ยังไม่มีคำสั่งแก้ไขทันที';
   return `
     <article class="card task-card mod-action-card${linkedTask && isTaskOverdue(linkedTask) ? ' is-overdue' : ''}">
       <div class="task-card__top">
         <span class="task-card__ticket">${escapeHtml(report.reportNo)}</span>
         <span class="task-card__time">${timeAgo(report.updatedAt || report.createdAt)}</span>
       </div>
-      <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)} / ${escapeHtml(report.department)}</div>
+      <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)} / ${escapeHtml(thDepartment(report.department))}</div>
       <h3 class="task-card__title">${escapeHtml(report.subject)}</h3>
       <div class="task-card__badges">
         <span class="badge badge-source-mod">MOD</span>
-        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
-        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
-        ${linkedTask ? `<span class="badge ${statusBadgeClass(linkedTask.status)}">${escapeHtml(linkedTask.status)}</span>` : ''}
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(thPriority(report.priority))}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(thStatus(report.status))}</span>
+        ${linkedTask ? `<span class="badge ${statusBadgeClass(linkedTask.status)}">${escapeHtml(thStatus(linkedTask.status))}</span>` : ''}
       </div>
       <div class="task-card__info">
-        <span>Owner: ${escapeHtml(assignedLabel)}</span>
-        <span>${linkedTask ? `Task ${escapeHtml(linkedTask.ticketNo)}` : 'Task not opened yet'}</span>
+        <span>ผู้รับผิดชอบ: ${escapeHtml(assignedLabel)}</span>
+        <span>${linkedTask ? `Task ${escapeHtml(linkedTask.ticketNo)}` : 'ยังไม่ได้เปิดงานติดตาม'}</span>
       </div>
       <div class="mod-action-card__note">${escapeHtml(actionNote)}</div>
       <div class="task-card__actions">
         ${linkedTask
-          ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(linkedTask.id)}">Open Task</button>`
-          : `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">Show MOD Tasks</button>`}
+          ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(linkedTask.id)}">เปิดงาน</button>`
+          : `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">ดูบอร์ดงาน MOD</button>`}
         ${compact
-          ? `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">Open Board</button>`
-          : `<button class="btn btn-secondary" type="button" data-mod-board-open="${escapeHtml(linkedTask ? 'modMine' : 'modDept')}">Focus Queue</button>`}
+          ? `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">เปิดบอร์ด</button>`
+          : `<button class="btn btn-secondary" type="button" data-mod-board-open="${escapeHtml(linkedTask ? 'modMine' : 'modDept')}">โฟกัสคิวงาน</button>`}
       </div>
     </article>
   `;
@@ -1331,8 +1373,8 @@ function renderSupervisorTaskBoard() {
 
 function renderSupervisorBoardSummary(tasks, department) {
   const items = [
-    { label: 'Open Team', value: tasks.filter((task) => !['Done', 'Closed'].includes(task.status)).length, tone: '' },
-    { label: 'Unassigned', value: tasks.filter((task) => task.status === 'New' && !task.assignedToName).length, tone: '' },
+    { label: 'ดูงานทีม', value: tasks.filter((task) => !['Done', 'Closed'].includes(task.status)).length, tone: '' },
+    { label: 'ยังไม่มอบหมาย', value: tasks.filter((task) => task.status === 'New' && !task.assignedToName).length, tone: '' },
     { label: 'In Progress', value: tasks.filter((task) => task.status === 'In Progress').length, tone: '' },
     { label: 'Overdue', value: tasks.filter((task) => isTaskOverdue(task)).length, tone: ' stat-card--danger' }
   ];
@@ -1348,7 +1390,7 @@ function renderSupervisorBoardSummary(tasks, department) {
 function renderSupervisorAssigneeOptions(tasks) {
   const options = [
     { value: '__ALL__', label: 'All team members' },
-    { value: '__UNASSIGNED__', label: 'Unassigned only' },
+    { value: '__UNASSIGNED__', label: 'ยังไม่มอบหมาย only' },
     { value: '__ME__', label: `Assigned to me (${state.currentUser.name})` }
   ];
   getTeamUsers(state.currentUser.department).forEach((user) => {
@@ -1401,10 +1443,10 @@ function renderSupervisorWorkloadCards(snapshot) {
 function renderSupervisorBalancePanel(snapshot) {
   if (!els.supervisorBalancePanel) return;
   const statusItems = [
-    { label: 'Overloaded', value: snapshot.overloaded.length, meta: 'Needs relief', band: 'overloaded' },
-    { label: 'Light / Available', value: snapshot.light.length + snapshot.available.length, meta: 'Ready for more', band: 'light' },
-    { label: 'Unassigned Queue', value: snapshot.unassignedTasks.length, meta: 'Waiting for owner', band: 'balanced' },
-    { label: 'Team Avg Load', value: formatScore(snapshot.avgScore), meta: `${formatScore(snapshot.avgActiveCount)} active avg`, band: 'heavy' }
+    { label: 'งานล้น', value: snapshot.overloaded.length, meta: 'ควรช่วยแบ่งเบา', band: 'overloaded' },
+    { label: 'เบา / ว่าง', value: snapshot.light.length + snapshot.available.length, meta: 'Ready for more', band: 'light' },
+    { label: 'ยังไม่มอบหมาย Queue', value: snapshot.unassignedTasks.length, meta: 'กำลังรอเจ้าของงาน', band: 'balanced' },
+    { label: 'ค่าเฉลี่ยภาระงานทีม', value: formatScore(snapshot.avgScore), meta: `${formatScore(snapshot.avgActiveCount)} active avg`, band: 'heavy' }
   ];
 
   els.supervisorBalanceStatus.innerHTML = statusItems.map((item) => `
@@ -1438,7 +1480,7 @@ function renderSupervisorBalancePanel(snapshot) {
 
   els.supervisorBalanceActions.innerHTML = `
     <button class="btn btn-primary" type="button" data-balance-action="assign-unassigned" ${assignDisabled}>Assign oldest unassigned → ${escapeHtml(suggestedTarget)}</button>
-    <button class="btn btn-secondary" type="button" data-balance-action="rebalance-one" ${moveDisabled}>Move 1 task from ${escapeHtml(heaviestOwner)} → ${escapeHtml(suggestedTarget)}</button>
+    <button class="btn btn-secondary" type="button" data-balance-action="rebalance-one" ${moveDisabled}>ย้ายงาน 1 รายการจาก ${escapeHtml(heaviestOwner)} → ${escapeHtml(suggestedTarget)}</button>
     <button class="btn btn-secondary" type="button" data-balance-action="auto-balance" ${autoDisabled}>Auto Balance 2 steps</button>
   `;
 }
@@ -1478,15 +1520,15 @@ function boardMiniCardHTML(task) {
       <h4 class="board-mini-card__title">${escapeHtml(task.subject)}</h4>
       <div class="board-mini-card__meta">
         <span>${escapeHtml(task.location)}</span>
-        <span>${escapeHtml(task.assignedToName || 'Unassigned')}</span>
+        <span>${escapeHtml(task.assignedToName || 'ยังไม่มอบหมาย')}</span>
       </div>
       <div class="board-mini-card__badges">
-        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
-        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(task.status)}</span>
+        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(thPriority(task.priority))}</span>
+        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(thStatus(task.status))}</span>
       </div>
       <div class="board-mini-card__foot">
-        <span>Opened by ${escapeHtml(task.openedByDepartment)}</span>
-        <button class="btn btn-secondary board-mini-card__btn" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>
+        <span>เปิดโดย ${escapeHtml(task.openedByDepartment)}</span>
+        <button class="btn btn-secondary board-mini-card__btn" type="button" data-task-view="${escapeHtml(task.id)}">เปิด</button>
       </div>
     </article>
   `;
@@ -1533,7 +1575,7 @@ function onSupervisorBalanceActionClick(event) {
 
   switch (button.dataset.balanceAction) {
     case 'assign-unassigned':
-      message = runAssignOldestUnassigned(snapshot);
+      message = runAssignOldestยังไม่มอบหมาย(snapshot);
       break;
     case 'rebalance-one':
       message = runRebalanceOne(snapshot);
@@ -1680,11 +1722,11 @@ function classifyWorkloadBand(item, avgScore, avgActiveCount) {
 
 function getWorkloadBandLabel(bandKey) {
   return {
-    overloaded: 'Overloaded',
-    heavy: 'Heavy',
-    balanced: 'Balanced',
-    light: 'Light',
-    available: 'Available'
+    overloaded: 'งานล้น',
+    heavy: 'งานหนัก',
+    balanced: 'สมดุล',
+    light: 'เบา',
+    available: 'ว่าง'
   }[bandKey] || 'Balanced';
 }
 
@@ -1695,9 +1737,9 @@ function buildBalanceRecommendations(snapshot) {
     const task = snapshot.unassignedTasks[0];
     items.push({
       action: 'assign-unassigned',
-      title: `Assign oldest unassigned to ${assignTarget.user.name}`,
+      title: `มอบหมายงานค้างที่เก่าที่สุดให้ ${assignTarget.user.name}`,
       meta: `${task.ticketNo} · ${task.subject}`,
-      buttonLabel: 'Assign now'
+      buttonLabel: 'มอบหมายทันที'
     });
   }
 
@@ -1705,18 +1747,18 @@ function buildBalanceRecommendations(snapshot) {
   if (movePlan) {
     items.push({
       action: 'rebalance-one',
-      title: `Move 1 task from ${movePlan.from.user.name} to ${movePlan.to.user.name}`,
+      title: `ย้ายงาน 1 รายการจาก ${movePlan.from.user.name} to ${movePlan.to.user.name}`,
       meta: `${movePlan.task.ticketNo} · ${movePlan.task.subject}`,
-      buttonLabel: 'Move now'
+      buttonLabel: 'ย้ายเลย'
     });
   }
 
   if (getAutoBalancePlan(snapshot, 2).steps.length) {
     items.push({
       action: 'auto-balance',
-      title: 'Auto balance recommended queue',
-      meta: 'Runs up to 2 safe balancing steps and keeps a full timeline log.',
-      buttonLabel: 'Run 2 steps'
+      title: 'กระจายคิวงานอัตโนมัติที่แนะนำ',
+      meta: 'ทำการกระจายงานแบบปลอดภัยสูงสุด 2 ขั้น พร้อมบันทึกลงไทม์ไลน์',
+      buttonLabel: 'รัน 2 ขั้น'
     });
   }
 
@@ -1769,24 +1811,24 @@ function simulateAssignment(tasks, taskId, newOwnerName) {
   return tasks.map((task) => task.id === taskId || task.ticketNo === taskId ? { ...task, assignedToName: newOwnerName, status: task.status === 'New' ? 'Accepted' : task.status } : task);
 }
 
-function runAssignOldestUnassigned(snapshot) {
+function runAssignOldestยังไม่มอบหมาย(snapshot) {
   const task = snapshot.unassignedTasks[0];
   const target = pickBestTargetMetric(snapshot);
-  if (!task || !target) return 'No unassigned task can be balanced right now.';
+  if (!task || !target) return 'ตอนนี้ยังไม่มีงานค้างที่พร้อมกระจาย';
   performAssignment(task.id, target.user, 'Supervisor workload balancing / oldest unassigned task auto-assigned.');
   return `${task.ticketNo} assigned to ${target.user.name} from the unassigned queue.`;
 }
 
 function runRebalanceOne(snapshot) {
   const plan = getRebalanceMovePlan(snapshot);
-  if (!plan) return 'No safe rebalance move is available right now.';
+  if (!plan) return 'ตอนนี้ยังไม่มีการย้ายงานที่ปลอดภัย';
   performAssignment(plan.task.id, plan.to.user, `Supervisor workload balancing / moved from ${plan.from.user.name} to ${plan.to.user.name}.`);
   return `${plan.task.ticketNo} moved from ${plan.from.user.name} to ${plan.to.user.name}.`;
 }
 
 function runAutoBalance(snapshot, maxSteps = 2) {
   const plan = getAutoBalancePlan(snapshot, maxSteps);
-  if (!plan.steps.length) return 'Team queue is already balanced enough for now.';
+  if (!plan.steps.length) return 'คิวงานของทีมสมดุลอยู่แล้วในตอนนี้';
 
   const messages = [];
   plan.steps.forEach((step, index) => {
@@ -1852,9 +1894,9 @@ function renderTaskDetail() {
   const task = getTaskById(state.currentTaskId);
   if (!task) {
     els.detailLocation.textContent = '-';
-    els.detailSubject.textContent = 'Task not found';
+    els.detailSubject.textContent = 'ไม่พบงาน';
     els.detailTicket.textContent = '-';
-    els.detailDescription.textContent = 'This task may have been removed.';
+    els.detailDescription.textContent = 'งานนี้อาจถูกลบออกแล้ว';
     els.detailDepartment.textContent = '-';
     els.detailCategory.textContent = '-';
     els.detailOpenedBy.textContent = '-';
@@ -1867,22 +1909,22 @@ function renderTaskDetail() {
     els.detailPriorityBadge.textContent = '-';
     els.detailStatusBadge.className = 'badge badge-status-new';
     els.detailStatusBadge.textContent = '-';
-    els.detailActions.innerHTML = '<div class="helper-text">No action available.</div>';
+    els.detailActions.innerHTML = '<div class="helper-text">ไม่มีการดำเนินการที่ใช้ได้</div>';
     els.detailAssignCard.classList.add('hidden');
     els.detailMediaCard.classList.add('hidden');
     els.detailMediaList.innerHTML = '';
     els.detailNoteInput.value = '';
-    els.detailTimeline.innerHTML = emptyStateHTML('Task not found', 'This task may have been removed.');
+    els.detailTimeline.innerHTML = emptyStateHTML('ไม่พบงาน', 'งานนี้อาจถูกลบออกแล้ว');
     return;
   }
 
-  els.detailLocation.textContent = `${task.location} / ${task.department}`;
+  els.detailLocation.textContent = `${task.location} / ${thDepartment(task.department)}`;
   els.detailSubject.textContent = task.subject;
   els.detailTicket.textContent = task.ticketNo;
-  els.detailDescription.textContent = task.detail || 'No detail provided.';
+  els.detailDescription.textContent = task.detail || 'ยังไม่มีรายละเอียด';
   els.detailDepartment.textContent = task.department;
   els.detailCategory.textContent = task.category;
-  els.detailOpenedBy.textContent = `${task.openedByName} / ${task.openedByDepartment}`;
+  els.detailOpenedBy.textContent = `${task.openedByName} / ${thDepartment(task.openedByDepartment)}`;
   els.detailAssignedTo.textContent = task.assignedToName || '-';
   els.detailAssignedBy.textContent = task.assignedByName ? `${task.assignedByName} / ${task.assignedByDepartment || '-'}` : '-';
   els.detailSource.textContent = task.sourceType ? `${task.sourceType}${task.sourceReference ? ` / ${task.sourceReference}` : ''}` : '-';
@@ -1897,7 +1939,7 @@ function renderTaskDetail() {
   const actions = getDetailActions(task);
   els.detailActions.innerHTML = actions.length
     ? actions.map((action) => `<button class="btn ${action.primary ? 'btn-primary' : 'btn-secondary'} ${action.full ? 'btn-full' : ''}" type="button" data-detail-action="${action.value}">${action.label}</button>`).join('')
-    : '<div class="helper-text">No direct action available for this user in current status.</div>';
+    : '<div class="helper-text">บทบาทนี้ยังไม่มีปุ่มดำเนินการสำหรับสถานะปัจจุบัน</div>';
 
   renderDetailAssignmentState(task);
   renderTaskMedia(task);
@@ -1905,7 +1947,7 @@ function renderTaskDetail() {
   const logs = [...(task.logs || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   els.detailTimeline.innerHTML = logs.length
     ? logs.map((log) => timelineItemHTML(log)).join('')
-    : emptyStateHTML('No timeline yet', 'Updates will appear here.');
+    : emptyStateHTML('ยังไม่มีไทม์ไลน์', 'อัปเดตจะแสดงที่นี่');
 }
 
 function renderHistoryPage() {
@@ -2451,7 +2493,7 @@ function formatFileSize(size) {
 
 async function submitModReport() {
   if (!canAccessMod()) {
-    alert('This page is available for MOD / Manager role.');
+    alert('หน้านี้ใช้ได้เฉพาะ MOD หรือผู้จัดการ');
     return;
   }
 
@@ -2465,7 +2507,7 @@ async function submitModReport() {
   const actionNote = document.getElementById('mod-action-note').value.trim();
 
   if (!area || !location || !department || !priority || !subject) {
-    alert('Please fill required fields: area, location, owner department, severity, and title.');
+    alert('กรุณากรอกข้อมูลที่จำเป็น: พื้นที่ จุดที่พบ แผนกรับผิดชอบ ระดับความสำคัญ และหัวข้อ');
     return;
   }
 
@@ -2579,8 +2621,8 @@ function renderModSummary() {
   const mediaCount = reports.filter((item) => (item.attachments || []).length > 0).length;
   const todayCount = reports.filter((item) => new Date(item.createdAt).toDateString() === todayKey).length;
   els.modSummaryGrid.innerHTML = [
-    { label: 'Open Findings', value: openCount },
-    { label: 'High Risk', value: highCount },
+    { label: 'ประเด็นเปิดอยู่', value: openCount },
+    { label: 'เสี่ยงสูง', value: highCount },
     { label: 'With Media', value: mediaCount },
     { label: 'Today Submitted', value: todayCount }
   ].map((card) => `
@@ -2624,16 +2666,16 @@ function modReportCardHTML(report) {
       <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)}</div>
       <h3 class="task-card__title">${escapeHtml(report.subject)}</h3>
       <div class="task-card__badges">
-        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
-        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(thPriority(report.priority))}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(thStatus(report.status))}</span>
       </div>
       <div class="task-card__info">
-        <span>${escapeHtml(report.department)} / ${escapeHtml(report.category)}</span>
-        <span>Media: ${(report.attachments || []).length}</span>
+        <span>${escapeHtml(thDepartment(report.department))} / ${escapeHtml(thCategory(report.category))}</span>
+        <span>ไฟล์แนบ: ${(report.attachments || []).length}</span>
       </div>
       <div class="task-card__actions">
-        <button class="btn btn-secondary" type="button" data-mod-open="${escapeHtml(report.id)}">Open</button>
-        ${report.linkedTaskId ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">View Task</button>` : `<button class="btn btn-primary" type="button" data-mod-open="${escapeHtml(report.id)}">Review</button>`}
+        <button class="btn btn-secondary" type="button" data-mod-open="${escapeHtml(report.id)}">เปิด</button>
+        ${report.linkedTaskId ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">View Task</button>` : `<button class="btn btn-primary" type="button" data-mod-open="${escapeHtml(report.id)}">ตรวจสอบ</button>`}
       </div>
     </article>
   `;
@@ -2644,8 +2686,8 @@ function renderModReportDetail() {
   const report = reports.find((item) => item.id === state.currentModReportId) || reports[0] || null;
   if (report && !state.currentModReportId) state.currentModReportId = report.id;
   if (!report) {
-    els.modDetailHint.textContent = 'Open one report to review media and follow-up';
-    els.modDetailPanel.innerHTML = emptyStateHTML('No MOD report yet', 'Create the first inspection finding from the form above.');
+    els.modDetailHint.textContent = 'เปิดสัก 1 รายการเพื่อดูรูป/วิดีโอและการติดตาม';
+    els.modDetailPanel.innerHTML = emptyStateHTML('ยังไม่มี MOD report', 'สร้างรายการตรวจพบแรกจากฟอร์มด้านบน');
     return;
   }
   els.modDetailHint.textContent = `${report.reportNo} / ${report.department}`;
@@ -2658,50 +2700,50 @@ function renderModReportDetail() {
         <p class="task-hero__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)}</p>
       </div>
       <div class="task-card__badges">
-        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
-        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(thPriority(report.priority))}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(thStatus(report.status))}</span>
       </div>
     </div>
     <dl class="detail-list">
-      <div><dt>Owner Dept</dt><dd>${escapeHtml(report.department)}</dd></div>
-      <div><dt>Category</dt><dd>${escapeHtml(report.category)}</dd></div>
-      <div><dt>Opened by</dt><dd>${escapeHtml(report.openedByName)} / ${escapeHtml(report.openedByDepartment)}</dd></div>
-      <div><dt>Linked Task</dt><dd>${report.linkedTaskId ? `<button class="link-btn" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">${escapeHtml(report.linkedTaskTicketNo || 'Open task')}</button>` : '-'}</dd></div>
-      <div><dt>Created</dt><dd>${formatDateTime(report.createdAt)}</dd></div>
-      <div><dt>Updated</dt><dd>${formatDateTime(report.updatedAt)}</dd></div>
+      <div><dt>แผนกรับผิดชอบ</dt><dd>${escapeHtml(thDepartment(report.department))}</dd></div>
+      <div><dt>Category</dt><dd>${escapeHtml(thCategory(report.category))}</dd></div>
+      <div><dt>เปิดโดย</dt><dd>${escapeHtml(report.openedByName)} / ${escapeHtml(report.openedByDepartment)}</dd></div>
+      <div><dt>งานที่เชื่อม</dt><dd>${report.linkedTaskId ? `<button class="link-btn" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">${escapeHtml(report.linkedTaskTicketNo || 'Open task')}</button>` : '-'}</dd></div>
+      <div><dt>สร้างเมื่อ</dt><dd>${formatDateTime(report.createdAt)}</dd></div>
+      <div><dt>อัปเดตเมื่อ</dt><dd>${formatDateTime(report.updatedAt)}</dd></div>
     </dl>
     <div class="card mod-detail-block">
-      <h4 class="block-title">Issue Found</h4>
-      <p class="detail-description">${escapeHtml(report.detail || 'No detail provided.')}</p>
-      <h4 class="block-title">Immediate Action / Instruction</h4>
+      <h4 class="block-title">ประเด็นที่พบ</h4>
+      <p class="detail-description">${escapeHtml(report.detail || 'ยังไม่มีรายละเอียด')}</p>
+      <h4 class="block-title">คำสั่งแก้ไขเบื้องต้น</h4>
       <p class="detail-description">${escapeHtml(report.actionNote || '-')}</p>
     </div>
     <div class="card mod-detail-block">
       <div class="section__header section__header--home">
         <div>
           <h4 class="block-title">Media Evidence</h4>
-          <span class="section__hint">${(report.attachments || []).length} file(s)</span>
+          <span class="section__hint">${(report.attachments || []).length} ไฟล์</span>
         </div>
       </div>
-      <div class="mod-media-grid">${(report.attachments || []).length ? renderMediaGallery(report.attachments) : emptyStateHTML('No media attached', 'No photo or video was attached to this MOD report.')}</div>
+      <div class="mod-media-grid">${(report.attachments || []).length ? renderMediaGallery(report.attachments) : emptyStateHTML('ไม่มีไฟล์แนบ', 'ยังไม่มีรูปหรือวิดีโอแนบกับ MOD report นี้')}</div>
     </div>
     <div class="action-grid mod-detail-actions">
       ${getModDetailActions(report).map((action) => `<button class="btn ${action.primary ? 'btn-primary' : 'btn-secondary'}" type="button" data-mod-action="${action.value}" data-mod-id="${report.id}">${action.label}</button>`).join('')}
     </div>
     <div class="card mod-detail-block">
       <h4 class="block-title">Timeline</h4>
-      <div class="timeline">${logs.length ? logs.map((log) => timelineItemHTML(log)).join('') : emptyStateHTML('No timeline yet', 'Updates will appear here.')}</div>
+      <div class="timeline">${logs.length ? logs.map((log) => timelineItemHTML(log)).join('') : emptyStateHTML('ยังไม่มีไทม์ไลน์', 'อัปเดตจะแสดงที่นี่')}</div>
     </div>
   `;
 }
 
 function getModDetailActions(report) {
   const actions = [];
-  if (report.status === 'Open') actions.push({ value: 'start', label: 'Start Follow-up', primary: true });
-  if (report.status === 'In Progress') actions.push({ value: 'resolve', label: 'Mark Resolved', primary: true });
-  if (report.status === 'Resolved') actions.push({ value: 'close', label: 'Close Report', primary: true });
-  if (report.status === 'Closed') actions.push({ value: 'reopen', label: 'Reopen', primary: false });
-  if (!report.linkedTaskId) actions.push({ value: 'createTask', label: 'Create Task', primary: false });
+  if (report.status === 'Open') actions.push({ value: 'start', label: 'เริ่มติดตาม', primary: true });
+  if (report.status === 'In Progress') actions.push({ value: 'resolve', label: 'ทำเครื่องหมายว่าแก้ไขแล้ว', primary: true });
+  if (report.status === 'Resolved') actions.push({ value: 'close', label: 'ปิดรายงาน', primary: true });
+  if (report.status === 'Closed') actions.push({ value: 'reopen', label: 'เปิดใหม่อีกครั้ง', primary: false });
+  if (!report.linkedTaskId) actions.push({ value: 'createTask', label: 'สร้างงานต่อจากรายการนี้', primary: false });
   return actions;
 }
 
@@ -2784,7 +2826,7 @@ function runModReportAction(action, reportId) {
     start: { status: 'In Progress', label: 'Follow-up Started' },
     resolve: { status: 'Resolved', label: 'Resolved' },
     close: { status: 'Closed', label: 'Closed' },
-    reopen: { status: 'In Progress', label: 'Reopened' }
+    reopen: { status: 'In Progress', label: 'เปิดใหม่อีกครั้งed' }
   };
   const step = transitionMap[action];
   if (!step) return;
@@ -2869,7 +2911,7 @@ function onCreateTask(event) {
   const selectedAssignee = canAssignNow ? users.find((user) => user.employeeId === selectedAssigneeId) : null;
 
   if (!location || !department || !priority || !subject) {
-    alert('Please fill required fields: location, department, priority, and subject.');
+    alert('กรุณากรอกข้อมูลที่จำเป็น: สถานที่ แผนก ระดับความสำคัญ และหัวข้อ');
     return;
   }
 
@@ -2976,14 +3018,14 @@ function assignCurrentTask() {
   const task = getTaskById(state.currentTaskId);
   if (!task) return;
   if (!canManageAssignments(task)) {
-    alert('You cannot assign this task.');
+    alert('คุณไม่สามารถมอบหมายงานนี้ได้');
     return;
   }
 
   const selectedAssigneeId = els.detailAssignSelect?.value || '';
   const assignee = users.find((user) => user.employeeId === selectedAssigneeId);
   if (!assignee) {
-    alert('Please select a team member first.');
+    alert('กรุณาเลือกพนักงานก่อน');
     return;
   }
 
@@ -3051,7 +3093,7 @@ function canWorkOnTask(task) {
 function saveDetailNote() {
   const note = els.detailNoteInput.value.trim();
   if (!note || !state.currentTaskId) {
-    alert('Please type a note first.');
+    alert('กรุณาพิมพ์บันทึกก่อน');
     return;
   }
 
@@ -3078,7 +3120,7 @@ function runTaskTransition(action, taskId) {
   };
   if (!transitions[action]) return;
   if (!canTransitionTask(task, action)) {
-    alert('This action is not allowed for the current user or task status.');
+    alert('ไม่สามารถทำรายการนี้ได้สำหรับผู้ใช้หรือสถานะงานปัจจุบัน');
     return;
   }
   updateTask(taskId, (draft) => {
@@ -3116,20 +3158,20 @@ function getDetailActions(task) {
   const canWork = canWorkOnTask(task);
 
   if (task.status === 'New' && sameDepartment && !canManage) {
-    actions.push({ value: 'accept', label: 'Accept Task', primary: true, full: true });
+    actions.push({ value: 'accept', label: 'รับงาน', primary: true, full: true });
   }
   if (task.status === 'Accepted' && canWork) {
-    actions.push({ value: 'start', label: 'Start Work', primary: true, full: true });
+    actions.push({ value: 'start', label: 'เริ่มทำงาน', primary: true, full: true });
   }
   if (task.status === 'In Progress' && canWork) {
-    actions.push({ value: 'focus-note', label: 'Add Note', primary: false });
-    actions.push({ value: 'done', label: 'Mark Done', primary: true });
+    actions.push({ value: 'focus-note', label: 'เพิ่มบันทึก', primary: false });
+    actions.push({ value: 'done', label: 'ทำเสร็จ', primary: true });
   }
   if (task.status === 'Done' && (manager || state.currentUser.department === task.openedByDepartment)) {
-    actions.push({ value: 'close', label: 'Close Task', primary: true, full: true });
+    actions.push({ value: 'close', label: 'ปิดงาน', primary: true, full: true });
   }
   if (task.status === 'Closed' && (manager || canManage)) {
-    actions.push({ value: 'reopen', label: 'Reopen Task', primary: false, full: true });
+    actions.push({ value: 'reopen', label: 'เปิดใหม่อีกครั้ง Task', primary: false, full: true });
   }
   return actions;
 }
@@ -3225,7 +3267,7 @@ function exportReportCsv() {
     task.category,
     task.priority,
     task.status,
-    `${task.openedByName} / ${task.openedByDepartment}`,
+    `${task.openedByName} / ${thDepartment(task.openedByDepartment)}`,
     task.assignedToName || '-',
     formatDateTime(task.createdAt),
     formatDateTime(task.updatedAt || task.createdAt)
@@ -3367,7 +3409,7 @@ function exportReportPdf() {
   const afterPriorityY = doc.lastAutoTable.finalY + 18;
   const taskRows = rows.length ? rows.map((task) => ([
     task.ticketNo,
-    `${task.location} / ${task.department}`,
+    `${task.location} / ${thDepartment(task.department)}`,
     task.subject,
     task.priority,
     task.status,
@@ -3718,19 +3760,19 @@ function taskCardHTML(task, options = {}) {
         <span class="task-card__ticket">${escapeHtml(task.ticketNo)}</span>
         <span class="task-card__time">${formatClock(task.updatedAt || task.createdAt)}</span>
       </div>
-      <div class="task-card__meta">${escapeHtml(task.location)} / ${escapeHtml(task.department)}</div>
+      <div class="task-card__meta">${escapeHtml(task.location)} / ${escapeHtml(thDepartment(task.department))}</div>
       <h3 class="task-card__title">${escapeHtml(task.subject)}</h3>
       <div class="task-card__badges">
         ${isTaskFromMod(task) ? '<span class="badge badge-source-mod">MOD</span>' : ''}
-        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
-        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(task.status)}</span>
+        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(thPriority(task.priority))}</span>
+        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(thStatus(task.status))}</span>
       </div>
       <div class="task-card__info">
-        <span>Opened by ${escapeHtml(task.openedByDepartment)}</span>
-        <span>Assigned: ${escapeHtml(task.assignedToName || '-')}</span>
+        <span>เปิดโดย ${escapeHtml(task.openedByDepartment)}</span>
+        <span>ผู้รับผิดชอบ: ${escapeHtml(task.assignedToName || '-')}</span>
       </div>
       <div class="task-card__actions">
-        <button class="btn btn-secondary" type="button" data-task-view="${escapeHtml(task.id)}">View</button>
+        <button class="btn btn-secondary" type="button" data-task-view="${escapeHtml(task.id)}">ดู</button>
         ${quickAction}
       </div>
     </article>
@@ -3744,10 +3786,10 @@ function getCardAction(task, forcedLabel) {
   const detailActions = getDetailActions(task);
   const primary = detailActions.find((action) => action.primary) || detailActions[0];
   if (!primary) {
-    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>`;
+    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">เปิด</button>`;
   }
   if (primary.value === 'focus-note') {
-    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>`;
+    return `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(task.id)}">เปิด</button>`;
   }
   return `<button class="btn btn-primary" type="button" data-task-action="${escapeHtml(primary.value)}" data-task-id="${escapeHtml(task.id)}">${escapeHtml(primary.label)}</button>`;
 }
@@ -3757,7 +3799,7 @@ function timelineItemHTML(log) {
     <div class="timeline-item">
       <div class="timeline-item__dot"></div>
       <div class="timeline-item__content">
-        <div class="timeline-item__title">${escapeHtml(log.action)} / ${escapeHtml(log.byName || '-')}</div>
+        <div class="timeline-item__title">${escapeHtml(thLogAction(log.action))} / ${escapeHtml(log.byName || '-')}</div>
         <div class="timeline-item__note">${escapeHtml(log.note || '-')}</div>
         <div class="timeline-item__time">${formatDateTime(log.createdAt)}</div>
       </div>
@@ -3864,11 +3906,11 @@ function statusBadgeClass(status) {
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const mins = Math.max(1, Math.floor(diffMs / 60000));
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${mins} นาทีที่แล้ว`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours} ชม. ที่แล้ว`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${days} วันที่แล้ว`;
 }
 
 function isTaskOverdue(task) {

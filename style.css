@@ -243,150 +243,6 @@ button { cursor: pointer; }
   gap: 12px;
 }
 .summary-grid--dashboard { margin-bottom: 18px; }
-.page-home--mod .actions-stack {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.page-home--mod .actions-stack .btn {
-  min-height: 52px;
-}
-.summary-grid--mod .stat-card {
-  background: linear-gradient(180deg, rgba(31,77,58,0.90), rgba(44,106,82,0.86));
-  border-color: rgba(31,77,58,0.18);
-  box-shadow: 0 12px 24px rgba(16, 24, 40, 0.10);
-}
-.summary-grid--mod .stat-card__label {
-  color: rgba(255,255,255,0.82);
-}
-.summary-grid--mod .stat-card__value {
-  color: #ffffff;
-}
-.mod-home {
-  margin-top: 0;
-}
-.mod-home__hero {
-  position: relative;
-  overflow: hidden;
-  padding: 18px;
-  border-color: rgba(31,77,58,0.16);
-  background: linear-gradient(135deg, rgba(31,77,58,0.98) 0%, rgba(44,106,82,0.92) 58%, rgba(75,126,104,0.90) 100%);
-  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.14);
-}
-.mod-home__hero::after {
-  content: '';
-  position: absolute;
-  right: -36px;
-  bottom: -48px;
-  width: 180px;
-  height: 180px;
-  border-radius: 999px;
-  background: radial-gradient(circle at center, rgba(255,255,255,0.14), rgba(255,255,255,0));
-}
-.mod-home__header,
-.mod-home__highlights,
-.mod-home__actions {
-  position: relative;
-  z-index: 1;
-}
-.mod-home__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-.mod-home__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.88);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.mod-home__title {
-  margin: 12px 0 8px;
-  color: #ffffff;
-  font-size: 28px;
-  line-height: 1.1;
-  font-weight: 800;
-}
-.mod-home__subtitle {
-  margin: 0;
-  max-width: 560px;
-  color: rgba(255,255,255,0.84);
-  line-height: 1.5;
-}
-.mod-home__shift {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.14);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.mod-home__highlights {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
-}
-.mod-home__mini {
-  min-height: 98px;
-  border-radius: 16px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  display: grid;
-  align-content: start;
-  gap: 6px;
-}
-.mod-home__mini-label {
-  color: rgba(255,255,255,0.78);
-  font-size: 12px;
-  font-weight: 700;
-}
-.mod-home__mini-value {
-  color: #ffffff;
-  font-size: 28px;
-  line-height: 1;
-  font-weight: 800;
-}
-.mod-home__mini-note {
-  color: rgba(255,255,255,0.72);
-  font-size: 12px;
-  line-height: 1.4;
-}
-.mod-home__actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 16px;
-}
-.mod-home__actions .btn-primary {
-  background: #ffffff;
-  color: var(--primary);
-  border-color: rgba(255,255,255,0.22);
-}
-.mod-home__actions .btn-primary:hover {
-  background: #f3faf6;
-}
-.mod-home__actions .btn-secondary {
-  background: rgba(255,255,255,0.10);
-  color: #ffffff;
-  border-color: rgba(255,255,255,0.16);
-}
-.mod-home__actions .btn-secondary:hover {
-  background: rgba(255,255,255,0.16);
-}
 .filters-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .stat-card {
@@ -1503,4 +1359,44 @@ button { cursor: pointer; }
 @media (min-width: 720px) {
   .chip-group--grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mod-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+
+.badge-source-mod {
+  background: rgba(31, 77, 58, 0.12);
+  border: 1px solid rgba(31, 77, 58, 0.18);
+  color: var(--primary);
+}
+
+.mod-action-board__hero {
+  background: linear-gradient(135deg, rgba(31, 77, 58, 0.08) 0%, rgba(176, 139, 87, 0.08) 100%);
+  border-color: #d7e3dc;
+}
+
+.mod-action-stat {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.mod-action-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfb 100%);
+}
+
+.mod-action-card__note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  background: rgba(31, 77, 58, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+#home-mod-board .task-card__actions .btn,
+#mod-action-list .task-card__actions .btn {
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  #mod-action-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
