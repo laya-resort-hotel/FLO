@@ -1,77 +1,79 @@
-# Laya Service Hub v1.14.1 Firebase Register Setup (TH)
+# Laya Service Hub v1.15.3 Firebase Connected Setup (TH)
 
-โปรเจกต์นี้ถูกปรับให้พร้อมเชื่อม Firebase สำหรับ 4 ส่วนหลักแล้ว:
-- Login ด้วย Firebase Authentication
-- Tasks ด้วย Cloud Firestore
-- MOD Reports ด้วย Cloud Firestore
-- รูป/วิดีโอด้วย Cloud Storage
+โปรเจกต์นี้ถูกใส่ค่า Firebase ของโปรเจกต์ **laya-flo-c4251** ให้แล้วในไฟล์ `firebase-config.js`
+ตอนนี้ตัวแอปจะพยายามเชื่อม Firebase จริงทันทีเมื่อเปิดเว็บ
 
-## 1) ค่าที่ต้องเอาจาก Firebase Console
-ไปที่ **Project settings > Your apps > Web app** แล้วนำค่าเหล่านี้มาใส่ใน `firebase-config.js`
-- apiKey
-- authDomain
-- projectId
-- storageBucket
-- messagingSenderId
-- appId
+## Firebase ที่ไฟล์นี้ใช้
+- projectId: `laya-flo-c4251`
+- authDomain: `laya-flo-c4251.firebaseapp.com`
+- storageBucket: `laya-flo-c4251.firebasestorage.app`
 
-## 2) เปิดบริการที่ต้องใช้
-- Authentication > Sign-in method > เปิด **Email/Password**
-- Firestore Database > Create database
-- Storage > Get started
+## ก่อนเริ่มเทส ต้องเปิดบริการนี้ใน Firebase Console
+1. **Authentication > Sign-in method > Email/Password** = เปิด
+2. **Firestore Database** = สร้างฐานข้อมูล
+3. **Storage** = Get started
 
-## 3) วิธีล็อกอินของระบบนี้
-หน้า Login ยังให้พนักงานกรอก **Employee ID + Password** เหมือนเดิม
-แต่ภายในระบบจะ map เป็นอีเมลแบบนี้:
+## Rules ที่ควรใช้กับ build นี้
+Build นี้ใช้ collections แบบ clean start:
+- `users/{employeeId}`
+- `tasks_clean/{taskId}`
+- `modReports_clean/{reportId}`
+
+ให้นำไฟล์ต่อไปนี้ไปวางใน Firebase Console:
+- `firestore.rules`
+- `storage.rules`
+
+## วิธีล็อกอินของระบบนี้
+หน้า Login ให้กรอก **Employee ID + Password**
+แต่ภายในระบบ Firebase Auth จะ map เป็นอีเมลแบบนี้:
 - `11025` -> `11025@laya.local`
 - `22018` -> `22018@laya.local`
 
-เมื่อผู้ใช้กดสมัครสมาชิก ระบบจะสร้างบัญชี Email/Password ตามรูปแบบนี้ให้อัตโนมัติ
-ถ้าเป็นบัญชีที่แอดมินสร้างไว้เองใน Firebase Authentication ก็ยังใช้งานได้เหมือนเดิม
+## ถ้าจะทดสอบเร็วที่สุด
+### ทางเลือก A: สมัครสมาชิกจากหน้าแอป
+ใช้ปุ่ม **สมัครสมาชิกพนักงาน** แล้วกรอก:
+- ชื่อ
+- รหัสพนักงาน
+- แผนก
+- รหัสผ่าน
 
-## 4) Firestore Collections ที่ระบบใช้
-- `users/{employeeId}`
-- `tasks/{taskId}`
-- `modReports/{reportId}`
-
-## 5) โครงสร้าง users document ขั้นต่ำ
-ตัวอย่าง `users/11025`
-```json
-{
-  "employeeId": "11025",
-  "name": "Noi",
-  "role": "CGM",
-  "department": "FO",
-  "active": true
-}
-```
-
-## 6) การสมัครสมาชิกพนักงาน
-เวอร์ชันนี้เพิ่มปุ่ม **สมัครสมาชิกพนักงาน** ที่หน้า Login แล้ว
-
-สิ่งที่สมัครเองได้:
+สมัครเองได้เฉพาะ Staff:
 - FO Staff
 - HK Staff
 - ENG Staff
 - FB Staff
 
-วิธีทำงาน:
-- พนักงานกรอก **ชื่อ + Employee ID + แผนก + Password**
-- ระบบจะสร้าง Firebase Authentication แบบ Email/Password ให้อัตโนมัติ โดยแปลงเป็น `employeeId@laya.local`
-- จากนั้นระบบจะสร้างหรืออัปเดต `users/{employeeId}` ใน Firestore ให้อัตโนมัติ
+### ทางเลือก B: สร้างบัญชีเองใน Firebase Console
+1. ไปที่ **Authentication > Users > Add user**
+2. Email ให้ใช้รูปแบบ `employeeId@laya.local`
+3. ตั้งรหัสผ่าน
+4. จากนั้นไปที่ Firestore เพิ่ม document ใน `users`
 
-ข้อจำกัด:
-- Role ระดับหัวหน้างาน / ผู้จัดการ / MOD / CGM ควรสร้างโดยแอดมินหรือผ่าน Team Setup
-- ถ้าจะให้พนักงานสมัครเองแบบไม่ต้องถูกเพิ่มในทีมก่อนก็ทำได้ เพราะระบบจะสร้าง profile staff ให้ตามแผนกที่เลือก
+ตัวอย่าง `users/11026`
+```json
+{
+  "employeeId": "11026",
+  "name": "Pim",
+  "role": "DOR",
+  "department": "FO",
+  "active": true
+}
+```
 
-## 7) หมายเหตุเรื่องเพิ่ม/ลบทีมงาน
-หน้า Team Setup ในแอปนี้ยังอัปเดตรายชื่อใน `users` collection ได้เหมือนเดิม
-ผู้จัดการสามารถเพิ่มรายชื่อทีมไว้ก่อนได้ และให้พนักงานคนนั้นมากดสมัครสมาชิกเองภายหลัง
+## Roles ที่ build นี้รองรับ
+- CGM
+- DOR
+- FO Staff
+- Housekeeping Manager
+- HK Staff
+- ENG Manager
+- ENG Staff
+- FB Manager
+- FB Staff
+- MOD
 
-## 8) Seed demo data
-ค่า `seedDemoDataIfEmpty: true` จะช่วยเติมตัวอย่าง Tasks / MOD Reports / roster ลง Firestore อัตโนมัติเมื่อข้อมูลยังว่าง
-เหมาะสำหรับเริ่มทดสอบระบบ
-
-## 9) Deployment
-อัปโหลดไฟล์ทั้งหมดขึ้น GitHub Pages ได้ตามเดิม
-แต่อย่าลืมแก้ `firebase-config.js` ให้เป็นค่าจริงก่อน
+## หมายเหตุสำคัญ
+- บัญชี Manager / DOR / MOD / CGM ควรสร้างผ่าน Firebase Console หรือ Firestore โดยผู้ดูแล
+- `seedDemoDataIfEmpty: true` จะช่วยเติม roster ผู้ใช้เริ่มต้นลง Firestore ถ้า collection ยังว่าง
+- Build นี้เริ่มงานจาก collection แบบสะอาด คือ `tasks_clean` และ `modReports_clean`
+- ถ้าเปิดเว็บแล้วไม่เห็นผล ให้ hard refresh 1 ครั้ง
