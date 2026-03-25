@@ -293,22 +293,15 @@ const els = {
   recentActivityTitle: document.getElementById('recent-activity-title'),
   recentActivityHint: document.getElementById('recent-activity-hint'),
   recentActivity: document.getElementById('recent-activity'),
+  homeModBoard: document.getElementById('home-mod-board'),
+  homeModBoardTitle: document.getElementById('home-mod-board-title'),
+  homeModBoardHint: document.getElementById('home-mod-board-hint'),
+  homeModBoardBtn: document.getElementById('home-mod-board-btn'),
+  homeModBoardList: document.getElementById('home-mod-board-list'),
   statNew: document.getElementById('stat-new'),
   statProgress: document.getElementById('stat-progress'),
   statDone: document.getElementById('stat-done'),
   statUrgent: document.getElementById('stat-urgent'),
-  homeSummaryGrid: document.getElementById('home-summary-grid'),
-  statNewLabel: document.getElementById('stat-new-label'),
-  statProgressLabel: document.getElementById('stat-progress-label'),
-  statDoneLabel: document.getElementById('stat-done-label'),
-  statUrgentLabel: document.getElementById('stat-urgent-label'),
-  modHomeHero: document.getElementById('mod-home-hero'),
-  modHomeShiftChip: document.getElementById('mod-home-shift-chip'),
-  modHomeHighlights: document.getElementById('mod-home-highlights'),
-  modHomeOpenReportBtn: document.getElementById('mod-home-open-report-btn'),
-  modHomeViewFindingsBtn: document.getElementById('mod-home-view-findings-btn'),
-  modHomeHighRiskBtn: document.getElementById('mod-home-high-risk-btn'),
-  modHomeFollowupBtn: document.getElementById('mod-home-followup-btn'),
   dashOpen: document.getElementById('dash-open'),
   dashProgress: document.getElementById('dash-progress'),
   dashOverdue: document.getElementById('dash-overdue'),
@@ -332,6 +325,13 @@ const els = {
   taskContextBar: document.getElementById('task-context-bar'),
   taskContextLabel: document.getElementById('task-context-label'),
   taskContextClear: document.getElementById('task-context-clear'),
+  modActionBoard: document.getElementById('mod-action-board'),
+  modActionBoardHint: document.getElementById('mod-action-board-hint'),
+  modActionSummary: document.getElementById('mod-action-summary'),
+  modActionCount: document.getElementById('mod-action-count'),
+  modActionFilters: document.getElementById('mod-action-filters'),
+  modActionOpenAll: document.getElementById('mod-action-open-all'),
+  modActionList: document.getElementById('mod-action-list'),
   supervisorBoard: document.getElementById('supervisor-board'),
   supervisorBoardSummary: document.getElementById('supervisor-board-summary'),
   teamQuickFilters: document.getElementById('team-quick-filters'),
@@ -439,7 +439,8 @@ const state = {
   currentModReportId: null,
   modFilter: 'all',
   modSearch: '',
-  modDraftMedia: []
+  modDraftMedia: [],
+  modActionFilter: 'all'
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -471,13 +472,18 @@ function bindEvents() {
   els.navHistory.addEventListener('click', () => showPage('history'));
   els.navMod.addEventListener('click', () => showPage('mod'));
   els.navReports.addEventListener('click', () => showPage('reports'));
-  els.homeCreateBtn.addEventListener('click', onHomeCreateClick);
+  els.homeCreateBtn.addEventListener('click', () => showPage('create'));
   els.homeViewTasksBtn.addEventListener('click', openDepartmentTasksFromHome);
+  if (els.homeModBoardBtn) els.homeModBoardBtn.addEventListener('click', openModBoardFromHome);
+  if (els.homeModBoardList) els.homeModBoardList.addEventListener('click', onModActionBoardClick);
   els.cancelCreateBtn.addEventListener('click', () => showPage(getDefaultLandingPage()));
   els.createTaskForm.addEventListener('submit', onCreateTask);
   els.taskStatusTabs.addEventListener('click', onTaskTabClick);
   els.taskFilterHigh.addEventListener('click', toggleHighFilter);
   els.taskContextClear.addEventListener('click', () => { clearTaskContext(); renderTaskList(); updateTopbar('tasks'); });
+  if (els.modActionFilters) els.modActionFilters.addEventListener('click', onModActionBoardFilterClick);
+  if (els.modActionList) els.modActionList.addEventListener('click', onModActionBoardClick);
+  if (els.modActionOpenAll) els.modActionOpenAll.addEventListener('click', () => openTaskPreset('modDept'));
   els.teamQuickFilters.addEventListener('click', onTeamQuickFilterClick);
   els.teamAssigneeFilter.addEventListener('change', onTeamAssigneeFilterChange);
   els.teamFilterClear.addEventListener('click', resetSupervisorTaskBoardFilters);
@@ -522,10 +528,6 @@ function bindEvents() {
   els.modSearch.addEventListener('input', onModSearchInput);
   els.modReportsList.addEventListener('click', onModReportListClick);
   els.modDetailPanel.addEventListener('click', onModDetailClick);
-  els.modHomeOpenReportBtn.addEventListener('click', openModReportFromHome);
-  els.modHomeViewFindingsBtn.addEventListener('click', openModFindingsFromHome);
-  els.modHomeHighRiskBtn.addEventListener('click', openModHighRiskFromHome);
-  els.modHomeFollowupBtn.addEventListener('click', () => openTaskPreset('modLinkedTasks'));
   els.dashGoTasks.addEventListener('click', () => { clearTaskContext(); showPage('tasks'); });
   els.dashGoHistory.addEventListener('click', () => showPage('history'));
   els.dashGoReports.addEventListener('click', () => showPage('reports'));
@@ -667,6 +669,7 @@ function renderApp() {
   const tasks = getTasks();
   renderSummary(tasks);
   renderHomeContent(tasks);
+  renderHomeModActionBoard();
   renderCreateAssignmentState();
   renderSupervisorTaskBoard();
   renderTaskList();
@@ -680,29 +683,6 @@ function renderApp() {
 function renderSummary(tasks) {
   const visibleTasks = getVisibleTasks(tasks);
   const todayKey = new Date().toDateString();
-
-  if (isMOD()) {
-    const reports = getModReports();
-    const openFindings = reports.filter((report) => !['Resolved', 'Closed'].includes(report.status)).length;
-    const highRisk = reports.filter((report) => !['Resolved', 'Closed'].includes(report.status) && ['High', 'Urgent'].includes(report.priority)).length;
-    const withMedia = reports.filter((report) => (report.attachments || []).length > 0).length;
-    const todaySubmitted = reports.filter((report) => new Date(report.createdAt).toDateString() === todayKey).length;
-
-    els.statNewLabel.textContent = 'Open Findings';
-    els.statProgressLabel.textContent = 'High Risk';
-    els.statDoneLabel.textContent = 'With Media';
-    els.statUrgentLabel.textContent = 'Today Submitted';
-    els.statNew.textContent = openFindings;
-    els.statProgress.textContent = highRisk;
-    els.statDone.textContent = withMedia;
-    els.statUrgent.textContent = todaySubmitted;
-    return;
-  }
-
-  els.statNewLabel.textContent = 'New';
-  els.statProgressLabel.textContent = 'In Progress';
-  els.statDoneLabel.textContent = 'Done Today';
-  els.statUrgentLabel.textContent = 'Urgent';
   els.statNew.textContent = visibleTasks.filter((t) => t.status === 'New').length;
   els.statProgress.textContent = visibleTasks.filter((t) => t.status === 'In Progress').length;
   els.statDone.textContent = visibleTasks.filter((t) => t.doneAt && new Date(t.doneAt).toDateString() === todayKey).length;
@@ -714,13 +694,6 @@ function renderHomeContent(tasks) {
 
   const visibleTasks = getVisibleTasks(tasks);
   const config = getHomeConfig();
-  const modMode = isMOD();
-
-  els.home.classList.toggle('page-home--mod', modMode);
-  els.homeSummaryGrid.classList.toggle('summary-grid--mod', modMode);
-  els.modHomeHero.classList.toggle('hidden', !modMode);
-  els.homeCreateBtn.textContent = modMode ? 'Open New Finding' : '+ Create Task';
-  if (modMode) renderModHomeHero(tasks);
   const sectionBindings = [
     {
       title: els.homeSection1Title,
@@ -765,90 +738,33 @@ function renderHomeContent(tasks) {
   renderRecentActivity(visibleTasks, config.activityPreset);
 }
 
-function renderModHomeHero(tasks) {
-  const visibleTasks = getVisibleTasks(tasks);
-  const reports = getModReports();
-  const openReports = reports.filter((report) => !['Resolved', 'Closed'].includes(report.status));
-  const todayKey = new Date().toDateString();
-  const todayReports = reports.filter((report) => new Date(report.createdAt).toDateString() === todayKey);
-  const withMedia = reports.filter((report) => (report.attachments || []).length > 0).length;
-  const highRisk = openReports.filter((report) => ['High', 'Urgent'].includes(report.priority));
-  const modLinkedOpen = visibleTasks.filter((task) => !['Done', 'Closed'].includes(task.status) && (task.sourceType === 'MOD' || /^MOD-/i.test(task.sourceReference || '')));
-  const overdueTasks = visibleTasks.filter((task) => !['Done', 'Closed'].includes(task.status) && isTaskOverdue(task));
-  const deptLoad = ['FO', 'HK', 'Engineering', 'FB']
-    .map((department) => ({
-      department,
-      openCount: visibleTasks.filter((task) => task.department === department && !['Done', 'Closed'].includes(task.status)).length
-    }))
-    .sort((a, b) => b.openCount - a.openCount);
-  const topDept = deptLoad[0]?.openCount ? `${deptLoad[0].department} leads with ${deptLoad[0].openCount} open` : 'All departments are steady';
-  const secondDept = deptLoad[1]?.openCount ? `${deptLoad[1].department} next at ${deptLoad[1].openCount}` : 'Balanced queue across teams';
 
-  els.modHomeShiftChip.textContent = getModShiftLabel();
-  els.modHomeHighlights.innerHTML = [
-    {
-      label: 'Open Findings',
-      value: openReports.length,
-      note: `${highRisk.length} high / urgent still open`
-    },
-    {
-      label: "Today's Findings",
-      value: todayReports.length,
-      note: `${withMedia} report(s) with photo / video`
-    },
-    {
-      label: 'MOD Follow-up Tasks',
-      value: modLinkedOpen.length,
-      note: modLinkedOpen.length ? 'Open tasks created from MOD inspection' : 'No linked follow-up task right now'
-    },
-    {
-      label: 'Hotel Pressure Points',
-      value: overdueTasks.length,
-      note: overdueTasks.length ? `${topDept} · ${secondDept}` : topDept
-    }
-  ].map((item) => `
-    <article class="mod-home__mini">
-      <span class="mod-home__mini-label">${escapeHtml(item.label)}</span>
-      <strong class="mod-home__mini-value">${item.value}</strong>
-      <span class="mod-home__mini-note">${escapeHtml(item.note)}</span>
-    </article>
-  `).join('');
-}
-
-function getModShiftLabel() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'AM MOD Round';
-  if (hour < 18) return 'PM MOD Round';
-  return 'Night MOD Round';
-}
-
-function onHomeCreateClick() {
-  if (isMOD()) {
-    openModReportFromHome();
+function renderHomeModActionBoard() {
+  if (!els.homeModBoard) return;
+  if (!shouldShowModActionBoard()) {
+    els.homeModBoard.classList.add('hidden');
     return;
   }
-  showPage('create');
+
+  const reports = getFilteredModActionReports();
+  const department = state.currentUser?.department || 'Department';
+  els.homeModBoard.classList.remove('hidden');
+  if (els.homeModBoardTitle) els.homeModBoardTitle.textContent = `MOD Action Board / ${department}`;
+  if (els.homeModBoardHint) {
+    els.homeModBoardHint.textContent = isSupervisor()
+      ? 'Department findings from MOD round for supervisor follow-up'
+      : 'Issues from MOD round for your department responsibility';
+  }
+  const preview = reports.slice(0, 3);
+  els.homeModBoardList.innerHTML = preview.length
+    ? preview.map((report) => modActionReportCardHTML(report, { compact: true })).join('')
+    : emptyStateHTML('No MOD follow-up now', 'No open MOD finding for your department right now.');
 }
 
-function openModReportFromHome() {
-  showPage('mod');
-  setTimeout(() => els.modSubject?.focus(), 0);
-}
-
-function openModFindingsFromHome() {
-  state.modFilter = 'all';
-  state.modSearch = '';
-  if (els.modSearch) els.modSearch.value = '';
-  showPage('mod');
-  renderModPage();
-}
-
-function openModHighRiskFromHome() {
-  state.modFilter = 'high';
-  state.modSearch = '';
-  if (els.modSearch) els.modSearch.value = '';
-  showPage('mod');
-  renderModPage();
+function openModBoardFromHome() {
+  state.modActionFilter = 'open';
+  syncModActionFilterChips();
+  openTaskPreset('modDept');
 }
 
 function renderRecentActivity(tasks, preset = 'departmentRecent') {
@@ -880,42 +796,6 @@ function getHomeConfig() {
     activityPreset: 'departmentRecent',
     sections: []
   };
-
-  if (isMOD()) {
-    return {
-      ...base,
-      tasksButtonLabel: 'View All Hotel Tasks',
-      activityTitle: 'Latest Hotel Updates',
-      activityHint: 'Cross-department activity from the whole hotel',
-      activityPreset: 'hotelRecent',
-      sections: [
-        {
-          title: 'Open Hotel Tasks',
-          hint: 'All open work orders across departments',
-          buttonLabel: 'Open All',
-          preset: 'allOpen',
-          emptyTitle: 'No open task',
-          emptyDescription: 'There is no open hotel task right now.'
-        },
-        {
-          title: 'High Risk / Overdue',
-          hint: 'Critical items that may need MOD escalation',
-          buttonLabel: 'Open High Risk',
-          preset: 'hotelUrgentOverdue',
-          emptyTitle: 'No high-risk task',
-          emptyDescription: 'No urgent or overdue task at the moment.'
-        },
-        {
-          title: 'Opened from MOD Reports',
-          hint: 'Follow-up tasks created from MOD inspection findings',
-          buttonLabel: 'Open MOD Follow-up',
-          preset: 'modLinkedTasks',
-          emptyTitle: 'No MOD follow-up yet',
-          emptyDescription: 'No task has been opened from MOD reports yet.'
-        }
-      ]
-    };
-  }
 
   if (isSupervisor()) {
     return {
@@ -1123,13 +1003,14 @@ function getHomeTasksByPreset(tasks, preset) {
   const teamActiveTask = (task) => deptTask(task) && ['Accepted', 'In Progress'].includes(task.status);
   const urgentTask = (task) => ['Urgent', 'High'].includes(task.priority) || isTaskOverdue(task);
   const vipTask = (task) => /vip|amenity|welcome/i.test(`${task.subject} ${task.detail} ${task.location}`);
-  const modLinkedTask = (task) => task.sourceType === 'MOD' || /^MOD-/i.test(task.sourceReference || '');
 
   const presets = {
     all: tasks,
-    allOpen: tasks.filter((task) => activeTask(task)),
     deptOnly: tasks.filter((task) => deptTask(task)),
     deptOpen: tasks.filter((task) => deptTask(task) && activeTask(task)),
+    modDept: tasks.filter((task) => deptTask(task) && activeTask(task) && isTaskFromMod(task)),
+    modMine: tasks.filter((task) => deptTask(task) && activeTask(task) && isTaskFromMod(task) && (mine(task) || !task.assignedToName)),
+    modHighRisk: tasks.filter((task) => deptTask(task) && activeTask(task) && isTaskFromMod(task) && urgentTask(task)),
     deptNew: tasks.filter((task) => deptTask(task) && task.status === 'New'),
     myInProgress: tasks.filter((task) => mine(task) && task.status === 'In Progress'),
     createdByMe: tasks.filter((task) => openedByMe(task)),
@@ -1137,16 +1018,13 @@ function getHomeTasksByPreset(tasks, preset) {
     supervisorTeamActive: tasks.filter((task) => teamActiveTask(task)),
     supervisorAssignedOrOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && (assignedByMe(task) || urgentTask(task))),
     deptUrgentOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && urgentTask(task)),
-    hotelUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task)),
-    modLinkedTasks: tasks.filter((task) => activeTask(task) && modLinkedTask(task)),
     foFollowUp: tasks.filter((task) => activeTask(task) && (task.openedByDepartment === 'FO' || mine(task) || task.department === 'FO')),
     foUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task) && (task.openedByDepartment === 'FO' || task.department === 'FO')),
     engUrgentRepairs: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (urgentTask(task) || task.category === 'Repair')),
     engNewOrOverdue: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (task.status === 'New' || isTaskOverdue(task))),
     fbVip: tasks.filter((task) => task.department === 'FB' && activeTask(task) && vipTask(task)),
     fbMyInProgressOrOverdue: tasks.filter((task) => task.department === 'FB' && activeTask(task) && (mine(task) || isTaskOverdue(task) || task.status === 'In Progress')),
-    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department),
-    hotelRecent: tasks
+    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department)
   };
 
   return presets[preset] || presets.all;
@@ -1158,7 +1036,7 @@ function getHomeActivityEntries(tasks, preset) {
 }
 
 function openDepartmentTasksFromHome() {
-  openTaskPreset(isMOD() ? 'all' : 'deptOnly');
+  openTaskPreset('deptOnly');
 }
 
 function openTaskPreset(preset) {
@@ -1194,10 +1072,11 @@ function getTaskContextFilteredTasks(tasks) {
 function getTaskContextLabel() {
   const labels = {
     all: '',
-    all: 'All hotel tasks',
-    allOpen: 'All open hotel tasks',
     deptOnly: `${state.currentUser?.department || 'Department'} tasks`,
     deptOpen: `${state.currentUser?.department || 'Department'} open tasks`,
+    modDept: `${state.currentUser?.department || 'Department'} MOD action board`,
+    modMine: 'My MOD follow-up',
+    modHighRisk: `${state.currentUser?.department || 'Department'} MOD high risk`,
     deptNew: `${state.currentUser?.department || 'Department'} new tasks`,
     myInProgress: 'My in progress tasks',
     createdByMe: 'Recently created by me',
@@ -1205,8 +1084,6 @@ function getTaskContextLabel() {
     supervisorTeamActive: `${state.currentUser?.department || 'Department'} team active`,
     supervisorAssignedOrOverdue: 'Assigned by me / overdue',
     deptUrgentOverdue: `${state.currentUser?.department || 'Department'} urgent / overdue`,
-    hotelUrgentOverdue: 'Hotel urgent / overdue',
-    modLinkedTasks: 'Tasks opened from MOD reports',
     foFollowUp: 'FO need follow-up',
     foUrgentOverdue: 'FO urgent / overdue',
     engUrgentRepairs: 'Engineering urgent repairs',
@@ -1266,6 +1143,7 @@ function renderDashboardPage() {
 }
 
 function renderTaskList() {
+  renderModActionBoard();
   renderSupervisorTaskBoard();
   const tasks = getTaskListResults();
   const contextLabel = getTaskContextLabel();
@@ -1276,6 +1154,158 @@ function renderTaskList() {
     : emptyStateHTML('No matching tasks', 'Try another status, team filter, or search keyword.');
 }
 
+
+
+function renderModActionBoard() {
+  if (!els.modActionBoard) return;
+  if (!shouldShowModActionBoard()) {
+    els.modActionBoard.classList.add('hidden');
+    return;
+  }
+
+  const reports = getFilteredModActionReports();
+  const allReports = getVisibleModActionReports();
+  const department = state.currentUser?.department || 'Department';
+  els.modActionBoard.classList.remove('hidden');
+  if (els.modActionBoardHint) {
+    els.modActionBoardHint.textContent = isSupervisor()
+      ? `${department} findings from MOD round for team action`
+      : `${department} findings from MOD round in your responsibility`;
+  }
+
+  const assignedToMe = allReports.filter((report) => {
+    const linkedTask = getLinkedTaskForModReport(report);
+    return linkedTask?.assignedToName === state.currentUser?.name && !['Done', 'Closed'].includes(linkedTask.status);
+  }).length;
+
+  els.modActionSummary.innerHTML = [
+    { label: 'Open Findings', value: allReports.filter((report) => !['Resolved', 'Closed'].includes(report.status)).length },
+    { label: 'High Risk', value: allReports.filter((report) => ['High', 'Urgent'].includes(report.priority) && !['Resolved', 'Closed'].includes(report.status)).length },
+    { label: 'Linked Tasks', value: allReports.filter((report) => !!getLinkedTaskForModReport(report)).length },
+    { label: 'Assigned to Me', value: assignedToMe }
+  ].map((card) => `
+    <article class="card stat-card mod-action-stat">
+      <span class="stat-card__label">${escapeHtml(card.label)}</span>
+      <strong class="stat-card__value">${card.value}</strong>
+    </article>
+  `).join('');
+
+  els.modActionCount.textContent = `${reports.length} item${reports.length === 1 ? '' : 's'}`;
+  els.modActionList.innerHTML = reports.length
+    ? reports.map((report) => modActionReportCardHTML(report)).join('')
+    : emptyStateHTML('No matching MOD follow-up', 'Try another MOD filter or check all department tasks.');
+  syncModActionFilterChips();
+}
+
+function syncModActionFilterChips() {
+  if (!els.modActionFilters) return;
+  Array.from(els.modActionFilters.querySelectorAll('[data-mod-board]')).forEach((chip) => {
+    chip.classList.toggle('is-active', chip.dataset.modBoard === state.modActionFilter);
+  });
+}
+
+function getVisibleModActionReports() {
+  const department = state.currentUser?.department;
+  if (!department || !shouldShowModActionBoard()) return [];
+  return getModReports()
+    .filter((report) => report.department === department)
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+}
+
+function getFilteredModActionReports() {
+  return getVisibleModActionReports().filter(matchesModActionFilter);
+}
+
+function matchesModActionFilter(report) {
+  const linkedTask = getLinkedTaskForModReport(report);
+  switch (state.modActionFilter) {
+    case 'open':
+      return !['Resolved', 'Closed'].includes(report.status);
+    case 'high':
+      return ['High', 'Urgent'].includes(report.priority) && !['Resolved', 'Closed'].includes(report.status);
+    case 'media':
+      return (report.attachments || []).length > 0;
+    case 'mine':
+      return linkedTask?.assignedToName === state.currentUser?.name;
+    default:
+      return true;
+  }
+}
+
+function getLinkedTaskForModReport(report) {
+  if (!report?.linkedTaskId && !report?.linkedTaskTicketNo) return null;
+  return getTasks().find((task) => (
+    (report.linkedTaskId && (task.id === report.linkedTaskId || task.ticketNo === report.linkedTaskId))
+    || (report.linkedTaskTicketNo && task.ticketNo === report.linkedTaskTicketNo)
+  )) || null;
+}
+
+function isTaskFromMod(task) {
+  if (!task) return false;
+  if (task.sourceType === 'MOD') return true;
+  if (String(task.sourceReference || '').startsWith('MOD-')) return true;
+  return getModReports().some((report) => (
+    report.linkedTaskId && (report.linkedTaskId === task.id || report.linkedTaskId === task.ticketNo || report.linkedTaskTicketNo === task.ticketNo)
+  ));
+}
+
+function modActionReportCardHTML(report, options = {}) {
+  const linkedTask = getLinkedTaskForModReport(report);
+  const compact = Boolean(options.compact);
+  const assignedLabel = linkedTask?.assignedToName || 'Unassigned';
+  const actionNote = report.actionNote || 'No immediate action note.';
+  return `
+    <article class="card task-card mod-action-card${linkedTask && isTaskOverdue(linkedTask) ? ' is-overdue' : ''}">
+      <div class="task-card__top">
+        <span class="task-card__ticket">${escapeHtml(report.reportNo)}</span>
+        <span class="task-card__time">${timeAgo(report.updatedAt || report.createdAt)}</span>
+      </div>
+      <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)} / ${escapeHtml(report.department)}</div>
+      <h3 class="task-card__title">${escapeHtml(report.subject)}</h3>
+      <div class="task-card__badges">
+        <span class="badge badge-source-mod">MOD</span>
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
+        ${linkedTask ? `<span class="badge ${statusBadgeClass(linkedTask.status)}">${escapeHtml(linkedTask.status)}</span>` : ''}
+      </div>
+      <div class="task-card__info">
+        <span>Owner: ${escapeHtml(assignedLabel)}</span>
+        <span>${linkedTask ? `Task ${escapeHtml(linkedTask.ticketNo)}` : 'Task not opened yet'}</span>
+      </div>
+      <div class="mod-action-card__note">${escapeHtml(actionNote)}</div>
+      <div class="task-card__actions">
+        ${linkedTask
+          ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(linkedTask.id)}">Open Task</button>`
+          : `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">Show MOD Tasks</button>`}
+        ${compact
+          ? `<button class="btn btn-secondary" type="button" data-mod-board-open="modDept">Open Board</button>`
+          : `<button class="btn btn-secondary" type="button" data-mod-board-open="${escapeHtml(linkedTask ? 'modMine' : 'modDept')}">Focus Queue</button>`}
+      </div>
+    </article>
+  `;
+}
+
+function onModActionBoardFilterClick(event) {
+  const chip = event.target.closest('[data-mod-board]');
+  if (!chip) return;
+  state.modActionFilter = chip.dataset.modBoard;
+  renderModActionBoard();
+}
+
+function onModActionBoardClick(event) {
+  const taskBtn = event.target.closest('[data-task-view]');
+  if (taskBtn) {
+    openTaskDetail(taskBtn.dataset.taskView);
+    return;
+  }
+  const boardBtn = event.target.closest('[data-mod-board-open]');
+  if (!boardBtn) return;
+  openTaskPreset(boardBtn.dataset.modBoardOpen || 'modDept');
+}
+
+function shouldShowModActionBoard() {
+  return isSupervisor() || isStaff();
+}
 
 function renderSupervisorTaskBoard() {
   if (!els.supervisorBoard) return;
@@ -3691,6 +3721,7 @@ function taskCardHTML(task, options = {}) {
       <div class="task-card__meta">${escapeHtml(task.location)} / ${escapeHtml(task.department)}</div>
       <h3 class="task-card__title">${escapeHtml(task.subject)}</h3>
       <div class="task-card__badges">
+        ${isTaskFromMod(task) ? '<span class="badge badge-source-mod">MOD</span>' : ''}
         <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
         <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(task.status)}</span>
       </div>
@@ -3883,6 +3914,10 @@ function isSupervisor() {
   return state.currentUser?.role === 'Supervisor';
 }
 
+function isStaff() {
+  return state.currentUser?.role === 'Staff';
+}
+
 function canAccessMod() {
   return isManager() || isMOD();
 }
@@ -3897,11 +3932,13 @@ function canSeeAllHotelTasks() {
 
 function getDefaultLandingPage() {
   if (isManager()) return 'dashboard';
+  if (isMOD()) return 'mod';
   return 'home';
 }
 
 function getHomeNavPage() {
   if (isManager()) return 'dashboard';
+  if (isMOD()) return 'mod';
   return 'home';
 }
 
