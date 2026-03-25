@@ -407,6 +407,8 @@ button { cursor: pointer; }
 .badge-status-new { background: #eaf3ff; color: #3178c6; }
 .badge-status-accepted { background: #f2ecff; color: #7c4dcb; }
 .badge-status-progress { background: #fff4e5; color: #d88a1d; }
+.badge-status-review { background: #fff0d9; color: #a66200; }
+.badge-status-rework { background: #ffe9e9; color: #b43d3d; }
 .badge-status-done { background: #e8f6ee; color: #2f8f5b; }
 .badge-status-closed { background: #eef1ef; color: #6b736d; }
 

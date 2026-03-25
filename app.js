@@ -24,7 +24,7 @@ const OVERDUE_MINUTES = {
 };
 
 const DEPARTMENTS = ['FO', 'FB', 'HK', 'Engineering'];
-const STATUSES = ['New', 'Accepted', 'In Progress', 'Done', 'Closed'];
+const STATUSES = ['New', 'Accepted', 'In Progress', 'Waiting Supervisor Review', 'Returned for Rework', 'Pending FO Closure', 'Closed'];
 const PRIORITIES = ['Urgent', 'High', 'Medium', 'Low'];
 const MOD_STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
 const MOD_MEDIA_INLINE_LIMIT = 2 * 1024 * 1024;
@@ -38,7 +38,9 @@ const STATUS_COLORS = {
   New: '#3178c6',
   Accepted: '#7c4dcb',
   'In Progress': '#d88a1d',
-  Done: '#2f8f5b',
+  'Waiting Supervisor Review': '#b26b00',
+  'Returned for Rework': '#c64747',
+  'Pending FO Closure': '#2f8f5b',
   Closed: '#6b736d'
 };
 const PRIORITY_COLORS = {
@@ -84,7 +86,7 @@ function createSeedTask(config) {
   logs.forEach((log) => {
     if (log.action === 'Accepted') assignedAt = log.createdAt;
     if (log.action === 'In Progress') startedAt = log.createdAt;
-    if (log.action === 'Done') doneAt = log.createdAt;
+    if (log.action === 'Done' || log.action === 'Pending FO Closure' || log.action === 'Submitted to FO') doneAt = log.createdAt;
     if (log.action === 'Closed') closedAt = log.createdAt;
   });
 
@@ -1485,12 +1487,12 @@ function getHomeConfig() {
           emptyDescription: 'There is no active task opened from FO right now.'
         },
         {
-          title: 'Done Waiting FO Close',
-          hint: 'Departments finished the job and sent it back to FO for closure',
-          buttonLabel: 'Open Done',
+          title: 'Pending FO Close',
+          hint: 'Department manager approved the work and sent it back to FO for closure',
+          buttonLabel: 'Open Pending',
           preset: dor ? 'doneWaitingFO' : 'doneWaitingMeClose',
           emptyTitle: 'Nothing waiting for FO close',
-          emptyDescription: 'No completed task is waiting for FO confirmation.'
+          emptyDescription: 'No manager-approved task is waiting for FO confirmation.'
         },
         {
           title: 'Urgent from MOD',
@@ -1593,7 +1595,7 @@ function getHomeTasksByPreset(tasks, preset) {
   const mine = (task) => task.assignedToName === state.currentUser?.name;
   const openedByMe = (task) => task.openedByName === state.currentUser?.name;
   const deptTask = (task) => task.department === department;
-  const activeTask = (task) => !['Done', 'Closed'].includes(task.status);
+  const activeTask = (task) => !['Pending FO Closure', 'Closed'].includes(task.status);
   const urgentTask = (task) => ['Urgent', 'High'].includes(task.priority) || isTaskOverdue(task);
   const modTask = (task) => task.sourceType === 'MOD';
   const openedByFO = (task) => task.openedByDepartment === 'FO';
@@ -1608,9 +1610,9 @@ function getHomeTasksByPreset(tasks, preset) {
     openedByMeActive: tasks.filter((task) => openedByMe(task) && activeTask(task)),
     hotelAllOpen: tasks.filter((task) => activeTask(task)),
     foOpenedActive: tasks.filter((task) => openedByFO(task) && activeTask(task)),
-    doneWaitingFO: tasks.filter((task) => task.status === 'Done' && openedByFO(task)),
-    doneWaitingMeClose: tasks.filter((task) => task.status === 'Done' && openedByMe(task)),
-    deptAssignedActive: tasks.filter((task) => deptTask(task) && ['Accepted', 'In Progress', 'Done'].includes(task.status)),
+    doneWaitingFO: tasks.filter((task) => task.status === 'Pending FO Closure' && openedByFO(task)),
+    doneWaitingMeClose: tasks.filter((task) => task.status === 'Pending FO Closure' && openedByMe(task)),
+    deptAssignedActive: tasks.filter((task) => deptTask(task) && ['Accepted', 'In Progress', 'Waiting Supervisor Review', 'Returned for Rework', 'Pending FO Closure'].includes(task.status)),
     modUrgentDept: tasks.filter((task) => deptTask(task) && modTask(task) && activeTask(task) && urgentTask(task)),
     modUrgentHotel: tasks.filter((task) => modTask(task) && activeTask(task) && urgentTask(task)),
     deptUrgentOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && urgentTask(task)),
@@ -1677,8 +1679,8 @@ function getTaskContextLabel() {
     openedByMeActive: 'Tasks opened by me',
     hotelAllOpen: 'All hotel open tasks',
     foOpenedActive: 'FO opened tasks',
-    doneWaitingFO: 'Done / waiting FO close',
-    doneWaitingMeClose: 'Done / waiting my close',
+    doneWaitingFO: 'Pending FO closure',
+    doneWaitingMeClose: 'Pending FO closure / opened by me',
     deptAssignedActive: `${state.currentUser?.department || 'Department'} assigned / active`,
     modUrgentDept: `${state.currentUser?.department || 'Department'} urgent from MOD`,
     modUrgentHotel: 'Urgent from MOD / hotel-wide',
@@ -1771,7 +1773,7 @@ function renderSupervisorTaskBoard() {
 
 function renderSupervisorBoardSummary(tasks, department) {
   const items = [
-    { label: 'Open Team', value: tasks.filter((task) => !['Done', 'Closed'].includes(task.status)).length, tone: '' },
+    { label: 'Open Team', value: tasks.filter((task) => !['Pending FO Closure', 'Closed'].includes(task.status)).length, tone: '' },
     { label: 'Unassigned', value: tasks.filter((task) => task.status === 'New' && !task.assignedToName).length, tone: '' },
     { label: 'In Progress', value: tasks.filter((task) => task.status === 'In Progress').length, tone: '' },
     { label: 'Overdue', value: tasks.filter((task) => isTaskOverdue(task)).length, tone: ' stat-card--danger' }
@@ -1888,7 +1890,7 @@ function renderSupervisorBoardLanes(tasks) {
     { title: 'New / Queue', status: 'New' },
     { title: 'Accepted', status: 'Accepted' },
     { title: 'In Progress', status: 'In Progress' },
-    { title: 'Done', status: 'Done' }
+    { title: 'Waiting Review', status: 'Waiting Supervisor Review' }
   ];
 
   els.supervisorBoardLanes.innerHTML = lanes.map((lane) => {
@@ -2039,7 +2041,7 @@ function getSupervisorTaskScope(options = {}) {
 
 function buildTeamWorkloadSnapshot(tasks, department) {
   const teamUsers = getTeamUsers(department);
-  const activeTasks = tasks.filter((task) => !['Done', 'Closed'].includes(task.status));
+  const activeTasks = tasks.filter((task) => !['Pending FO Closure', 'Closed'].includes(task.status));
   const unassignedTasks = activeTasks
     .filter((task) => !task.assignedToName)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt) || priorityWeight(b.priority) - priorityWeight(a.priority));
@@ -2248,11 +2250,11 @@ ${messages.join('\n')}`
 function matchesSupervisorQuickFilter(task) {
   switch (state.teamQuickFilter) {
     case 'active':
-      return ['Accepted', 'In Progress'].includes(task.status);
+      return ['Accepted', 'In Progress', 'Waiting Supervisor Review', 'Returned for Rework'].includes(task.status);
     case 'unassigned':
       return task.status === 'New' && !task.assignedToName;
     case 'assignedByMe':
-      return !['Done', 'Closed'].includes(task.status) && task.assignedByName === state.currentUser.name;
+      return !['Pending FO Closure', 'Closed'].includes(task.status) && task.assignedByName === state.currentUser.name;
     case 'overdue':
       return isTaskOverdue(task);
     default:
@@ -2412,7 +2414,7 @@ function renderReportsPage() {
     return {
       priority,
       count,
-      active: priorityTasks.filter((t) => !['Closed', 'Done'].includes(t.status)).length,
+      active: priorityTasks.filter((t) => !['Closed', 'Pending FO Closure'].includes(t.status)).length,
       share: tasks.length ? Math.round((count / tasks.length) * 100) : 0
     };
   });
@@ -3425,7 +3427,7 @@ function renderCreateAssignmentState() {
 
 function renderDetailAssignmentState(task) {
   if (!els.detailAssignCard) return;
-  const canAssign = !!task && canManageAssignments(task) && !['Done', 'Closed'].includes(task.status);
+  const canAssign = !!task && canManageAssignments(task) && !['Pending FO Closure', 'Closed'].includes(task.status);
   els.detailAssignCard.classList.toggle('hidden', !canAssign);
   if (!canAssign) return;
 
@@ -3481,7 +3483,12 @@ function performAssignment(taskId, assignee, note = '') {
     draft.assignedByName = state.currentUser.name;
     draft.assignedByDepartment = state.currentUser.department;
     draft.assignedAt = now;
-    if (draft.status === 'New') draft.status = 'Accepted';
+    if (isAssignableRole(assignee.role) && draft.status !== 'Closed') {
+      draft.status = 'New';
+      draft.startedAt = '';
+      draft.doneAt = '';
+      draft.closedAt = '';
+    }
     draft.updatedAt = now;
     draft.logs.unshift({
       action,
@@ -3547,35 +3554,52 @@ function runTaskTransition(action, taskId) {
   const task = getTaskById(taskId);
   if (!task) return;
   const transitions = {
-    accept: { status: 'Accepted', note: 'Task accepted.' },
-    start: { status: 'In Progress', note: 'Work started.' },
-    done: { status: 'Done', note: 'Work marked done.' },
-    close: { status: 'Closed', note: 'Task closed.' },
-    reopen: { status: 'In Progress', note: 'Task reopened.' }
+    accept: { status: 'Accepted', logAction: 'Accepted', note: 'Task accepted by staff.' },
+    start: { status: 'In Progress', logAction: 'In Progress', note: 'Work started.' },
+    submitReview: { status: 'Waiting Supervisor Review', logAction: 'Submitted to Manager', note: 'Work submitted to department manager for review.' },
+    resubmitReview: { status: 'Waiting Supervisor Review', logAction: 'Resubmitted to Manager', note: 'Rework completed and submitted back to department manager.' },
+    managerReturn: { status: 'Returned for Rework', logAction: 'Returned for Rework', note: 'Department manager returned this task for rework.' },
+    managerApprove: { status: 'Pending FO Closure', logAction: 'Submitted to FO', note: 'Department manager approved the work and sent it to FO / DOR for closure.' },
+    close: { status: 'Closed', logAction: 'Closed', note: 'Task closed by FO / DOR.' },
+    reopen: { status: 'In Progress', logAction: 'Reopened', note: 'Task reopened.' }
   };
   if (!transitions[action]) return;
   if (!canTransitionTask(task, action)) {
     alert('This action is not allowed for the current user or task status.');
     return;
   }
+
+  const draftNote = (els.detailNoteInput?.value || '').trim();
+  if ((action === 'submitReview' || action === 'resubmitReview') && !(task.mediaAttachments || []).length) {
+    alert('Please upload at least 1 photo or video before sending work back to manager.');
+    return;
+  }
+
   updateTask(taskId, (draft) => {
     const now = new Date().toISOString();
-    draft.status = transitions[action].status;
+    const transition = transitions[action];
+    draft.status = transition.status;
     draft.updatedAt = now;
     if (action === 'accept') {
       draft.assignedToName = state.currentUser.name;
       draft.assignedAt = now;
     }
-    if (action === 'start') draft.startedAt = now;
-    if (action === 'done') draft.doneAt = now;
+    if (action === 'start' || action === 'reopen') draft.startedAt = now;
+    if (action === 'submitReview' || action === 'resubmitReview' || action === 'managerApprove') draft.doneAt = now;
+    if (action === 'managerReturn') {
+      draft.doneAt = '';
+      draft.closedAt = '';
+    }
     if (action === 'close') draft.closedAt = now;
     if (action === 'reopen') {
       draft.closedAt = '';
       draft.doneAt = '';
     }
-    draft.logs.unshift(createLog(capitalize(action), transitions[action].note));
+    const combinedNote = draftNote ? `${transition.note} / ${draftNote}` : transition.note;
+    draft.logs.unshift(createLog(transition.logAction, combinedNote));
     return draft;
   });
+  if (els.detailNoteInput) els.detailNoteInput.value = '';
   renderApp();
   if (state.currentView === 'detail') showPage('detail');
 }
@@ -3587,24 +3611,33 @@ function openTaskDetail(taskId) {
 
 function getDetailActions(task) {
   const actions = [];
-  const assignedWorker = task.assignedToName === state.currentUser?.name;
+  const assignedWorker = isDepartmentStaff() && task.assignedToName === state.currentUser?.name;
+  const deptManager = isDepartmentManager() && state.currentUser?.department === task.department;
   const canClose = isCGM() || isFODispatcher();
 
   if (task.status === 'New' && assignedWorker) {
-    actions.push({ value: 'accept', label: 'Accept Task', primary: true, full: true });
+    actions.push({ value: 'accept', label: 'รับงาน', primary: true, full: true });
   }
   if (task.status === 'Accepted' && assignedWorker) {
-    actions.push({ value: 'start', label: 'Start Work', primary: true, full: true });
+    actions.push({ value: 'start', label: 'เริ่มทำงาน', primary: true, full: true });
   }
   if (task.status === 'In Progress' && assignedWorker) {
-    actions.push({ value: 'focus-note', label: 'Add Note', primary: false });
-    actions.push({ value: 'done', label: 'Send to FO', primary: true });
+    actions.push({ value: 'focus-note', label: 'เพิ่มหมายเหตุ', primary: false });
+    actions.push({ value: 'submitReview', label: 'ส่งงานกลับหัวหน้า', primary: true });
   }
-  if (task.status === 'Done' && canClose) {
-    actions.push({ value: 'close', label: 'Close Task', primary: true, full: true });
+  if (task.status === 'Returned for Rework' && assignedWorker) {
+    actions.push({ value: 'focus-note', label: 'เพิ่มหมายเหตุ', primary: false });
+    actions.push({ value: 'resubmitReview', label: 'แก้ไขแล้วส่งกลับหัวหน้า', primary: true });
+  }
+  if (task.status === 'Waiting Supervisor Review' && deptManager) {
+    actions.push({ value: 'managerReturn', label: 'ส่งกลับให้แก้ไข', primary: false });
+    actions.push({ value: 'managerApprove', label: 'รับรองงาน / ส่งต่อ FO', primary: true });
+  }
+  if (task.status === 'Pending FO Closure' && canClose) {
+    actions.push({ value: 'close', label: 'ปิดงาน', primary: true, full: true });
   }
   if (task.status === 'Closed' && canClose) {
-    actions.push({ value: 'reopen', label: 'Reopen Task', primary: false, full: true });
+    actions.push({ value: 'reopen', label: 'เปิดงานใหม่', primary: false, full: true });
   }
   return actions;
 }
@@ -3764,7 +3797,7 @@ function exportReportPdf() {
     return {
       priority,
       count,
-      active: priorityTasks.filter((t) => !['Closed', 'Done'].includes(t.status)).length,
+      active: priorityTasks.filter((t) => !['Closed', 'Pending FO Closure'].includes(t.status)).length,
       share: rows.length ? Math.round((count / rows.length) * 100) : 0
     };
   });
@@ -4082,9 +4115,9 @@ function buildExecutiveSummary(tasks, deptStats, meta) {
   const sortedDepartments = [...deptStats].sort((a, b) => b.count - a.count);
   const busiest = sortedDepartments.find((item) => item.count > 0);
   const mostOverdue = [...deptStats].sort((a, b) => b.overdue - a.overdue)[0];
-  const urgentOpen = tasks.filter((task) => ['High', 'Urgent'].includes(task.priority) && !['Done', 'Closed'].includes(task.status)).length;
+  const urgentOpen = tasks.filter((task) => ['High', 'Urgent'].includes(task.priority) && !['Pending FO Closure', 'Closed'].includes(task.status)).length;
   const oldestOpen = [...tasks]
-    .filter((task) => !['Done', 'Closed'].includes(task.status))
+    .filter((task) => !['Pending FO Closure', 'Closed'].includes(task.status))
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
 
   const lines = [
@@ -4245,7 +4278,7 @@ function renderDetailWorkMediaPreview() {
   const items = state.detailDraftMedia || [];
   els.detailWorkMediaPreview.innerHTML = items.length
     ? renderMediaGallery(items, { removable: true })
-    : emptyStateHTML('No work media selected', 'Attach photo or video from the department before sending work back to FO.');
+    : emptyStateHTML('No work media selected', 'Attach photo or video from the department before sending work back to manager.');
 }
 
 function clearDetailWorkMediaDraft() {
@@ -4275,15 +4308,16 @@ async function saveDetailWorkMedia() {
 
 function renderDetailWorkUploadCard(task) {
   if (!els.detailWorkUploadCard) return;
-  const visible = isDepartmentStaff() && task.assignedToName === state.currentUser?.name && ['Accepted', 'In Progress'].includes(task.status);
+  const visible = isDepartmentStaff() && task.assignedToName === state.currentUser?.name && ['Accepted', 'In Progress', 'Returned for Rework'].includes(task.status);
   els.detailWorkUploadCard.classList.toggle('hidden', !visible);
   if (visible && els.detailWorkUploadHint) {
-    els.detailWorkUploadHint.textContent = 'Attach photo or video evidence before sending this task back to FO.';
+    els.detailWorkUploadHint.textContent = 'Attach photo or video evidence before sending this task back to manager.';
   }
   renderDetailWorkMediaPreview();
 }
 
 function normalizeTask(task) {
+  const normalizedStatus = task.status === 'Done' ? 'Pending FO Closure' : (task.status || 'New');
   return {
     id: task.id || task.ticketNo || generateId(),
     ticketNo: task.ticketNo,
@@ -4293,7 +4327,7 @@ function normalizeTask(task) {
     priority: task.priority || 'Medium',
     subject: task.subject || '-',
     detail: task.detail || '',
-    status: task.status || 'New',
+    status: normalizedStatus,
     openedByName: task.openedByName || '-',
     openedByDepartment: task.openedByDepartment || '-',
     assignedToName: task.assignedToName || '',
@@ -4469,7 +4503,9 @@ function statusBadgeClass(status) {
     New: 'badge-status-new',
     Accepted: 'badge-status-accepted',
     'In Progress': 'badge-status-progress',
-    Done: 'badge-status-done',
+    'Waiting Supervisor Review': 'badge-status-review',
+    'Returned for Rework': 'badge-status-rework',
+    'Pending FO Closure': 'badge-status-done',
     Closed: 'badge-status-closed'
   }[status] || 'badge-status-new';
 }
@@ -4485,7 +4521,7 @@ function timeAgo(dateString) {
 }
 
 function isTaskOverdue(task) {
-  if (task.status === 'Closed' || task.status === 'Done') return false;
+  if (task.status === 'Closed' || task.status === 'Pending FO Closure') return false;
   const limit = OVERDUE_MINUTES[task.priority] || 120;
   const ageMinutes = (Date.now() - new Date(task.createdAt).getTime()) / 60000;
   return ageMinutes > limit;
