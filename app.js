@@ -268,6 +268,14 @@ const els = {
   taskContextBar: document.getElementById('task-context-bar'),
   taskContextLabel: document.getElementById('task-context-label'),
   taskContextClear: document.getElementById('task-context-clear'),
+  supervisorBoard: document.getElementById('supervisor-board'),
+  supervisorBoardSummary: document.getElementById('supervisor-board-summary'),
+  teamQuickFilters: document.getElementById('team-quick-filters'),
+  teamAssigneeFilter: document.getElementById('team-assignee-filter'),
+  teamFilterHint: document.getElementById('team-filter-hint'),
+  teamFilterClear: document.getElementById('team-filter-clear'),
+  supervisorWorkloadCards: document.getElementById('supervisor-workload-cards'),
+  supervisorBoardLanes: document.getElementById('supervisor-board-lanes'),
   tasksList: document.getElementById('tasks-list'),
   detailTicket: document.getElementById('detail-ticket'),
   detailSubject: document.getElementById('detail-subject'),
@@ -336,6 +344,8 @@ const state = {
   taskSearch: '',
   highOnly: false,
   taskContext: 'all',
+  teamQuickFilter: 'all',
+  teamAssigneeFilter: '__ALL__',
   historyPreset: 'today',
   reportPreset: 'today',
   reportViewMode: 'daily'
@@ -372,6 +382,11 @@ function bindEvents() {
   els.taskStatusTabs.addEventListener('click', onTaskTabClick);
   els.taskFilterHigh.addEventListener('click', toggleHighFilter);
   els.taskContextClear.addEventListener('click', () => { clearTaskContext(); renderTaskList(); updateTopbar('tasks'); });
+  els.teamQuickFilters.addEventListener('click', onTeamQuickFilterClick);
+  els.teamAssigneeFilter.addEventListener('change', onTeamAssigneeFilterChange);
+  els.teamFilterClear.addEventListener('click', resetSupervisorTaskBoardFilters);
+  els.supervisorWorkloadCards.addEventListener('click', onWorkloadCardClick);
+  els.supervisorBoardLanes.addEventListener('click', onSupervisorBoardClick);
   els.homeSection1Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[0].preset));
   els.homeSection2Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[1].preset));
   els.homeSection3Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[2].preset));
@@ -530,6 +545,7 @@ function renderApp() {
   renderSummary(tasks);
   renderHomeContent(tasks);
   renderCreateAssignmentState();
+  renderSupervisorTaskBoard();
   renderTaskList();
   renderHistoryPage();
   if (isManager()) {
@@ -886,6 +902,7 @@ function resetTaskListControls() {
   state.taskSearch = '';
   if (els.tasksSearch) els.tasksSearch.value = '';
   if (els.taskFilterHigh) els.taskFilterHigh.classList.remove('is-active');
+  resetSupervisorTaskBoardFilters(true);
   Array.from(els.taskStatusTabs.querySelectorAll('.tab')).forEach((tab) => {
     tab.classList.toggle('is-active', tab.dataset.status === 'All');
   });
@@ -966,13 +983,275 @@ function renderDashboardPage() {
 }
 
 function renderTaskList() {
+  renderSupervisorTaskBoard();
   const tasks = getTaskListResults();
   const contextLabel = getTaskContextLabel();
   els.taskContextBar.classList.toggle('hidden', !contextLabel);
   els.taskContextLabel.textContent = contextLabel || 'Filtered view';
   els.tasksList.innerHTML = tasks.length
     ? tasks.map((task) => taskCardHTML(task)).join('')
-    : emptyStateHTML('No matching tasks', 'Try another status or search keyword.');
+    : emptyStateHTML('No matching tasks', 'Try another status, team filter, or search keyword.');
+}
+
+
+function renderSupervisorTaskBoard() {
+  if (!els.supervisorBoard) return;
+  if (!isSupervisor()) {
+    els.supervisorBoard.classList.add('hidden');
+    return;
+  }
+
+  els.supervisorBoard.classList.remove('hidden');
+  const summaryTasks = getSupervisorBoardSummaryTasks();
+  const boardTasks = getSupervisorBoardLaneTasks();
+  const workloadTasks = getSupervisorBoardWorkloadTasks();
+  const department = state.currentUser?.department || 'Department';
+
+  els.teamFilterHint.textContent = buildSupervisorFilterHint();
+  renderSupervisorBoardSummary(summaryTasks, department);
+  renderSupervisorAssigneeOptions(summaryTasks);
+  renderSupervisorWorkloadCards(workloadTasks);
+  renderSupervisorBoardLanes(boardTasks);
+}
+
+function renderSupervisorBoardSummary(tasks, department) {
+  const items = [
+    { label: 'Open Team', value: tasks.filter((task) => !['Done', 'Closed'].includes(task.status)).length, tone: '' },
+    { label: 'Unassigned', value: tasks.filter((task) => task.status === 'New' && !task.assignedToName).length, tone: '' },
+    { label: 'In Progress', value: tasks.filter((task) => task.status === 'In Progress').length, tone: '' },
+    { label: 'Overdue', value: tasks.filter((task) => isTaskOverdue(task)).length, tone: ' stat-card--danger' }
+  ];
+  els.supervisorBoardSummary.innerHTML = items.map((item) => `
+    <article class="card stat-card${item.tone}">
+      <span class="stat-card__label">${escapeHtml(item.label)}</span>
+      <strong class="stat-card__value">${escapeHtml(String(item.value))}</strong>
+      <span class="helper-text">${escapeHtml(department)} team scope</span>
+    </article>
+  `).join('');
+}
+
+function renderSupervisorAssigneeOptions(tasks) {
+  const options = [
+    { value: '__ALL__', label: 'All team members' },
+    { value: '__UNASSIGNED__', label: 'Unassigned only' },
+    { value: '__ME__', label: `Assigned to me (${state.currentUser.name})` }
+  ];
+  getTeamUsers(state.currentUser.department).forEach((user) => {
+    options.push({ value: `name:${user.name}`, label: `${user.name} / ${user.role}` });
+  });
+
+  const currentValue = options.some((option) => option.value === state.teamAssigneeFilter)
+    ? state.teamAssigneeFilter
+    : '__ALL__';
+  if (currentValue !== state.teamAssigneeFilter) state.teamAssigneeFilter = currentValue;
+
+  els.teamAssigneeFilter.innerHTML = options.map((option) => `
+    <option value="${escapeHtml(option.value)}" ${option.value === currentValue ? 'selected' : ''}>${escapeHtml(option.label)}</option>
+  `).join('');
+}
+
+function renderSupervisorWorkloadCards(tasks) {
+  const teamUsers = getTeamUsers(state.currentUser.department);
+  const activeTasks = tasks.filter((task) => !['Done', 'Closed'].includes(task.status));
+  const maxOpen = Math.max(1, ...teamUsers.map((user) => activeTasks.filter((task) => task.assignedToName === user.name).length));
+
+  const cards = teamUsers.map((user) => {
+    const assigned = activeTasks.filter((task) => task.assignedToName === user.name);
+    const inProgress = assigned.filter((task) => task.status === 'In Progress').length;
+    const overdue = assigned.filter((task) => isTaskOverdue(task)).length;
+    const accepted = assigned.filter((task) => task.status === 'Accepted').length;
+    const fill = Math.max(8, Math.round((assigned.length / maxOpen) * 100));
+    const activeClass = matchesSelectedAssigneeName(user.name) ? ' is-active' : '';
+    return `
+      <button class="workload-card${activeClass}" type="button" data-workload-owner="name:${escapeHtml(user.name)}">
+        <div class="workload-card__top">
+          <div>
+            <div class="workload-card__name">${escapeHtml(user.name)}</div>
+            <div class="workload-card__role">${escapeHtml(user.role)} / ${escapeHtml(user.department)}</div>
+          </div>
+          <div class="workload-card__count">${escapeHtml(String(assigned.length))}</div>
+        </div>
+        <div class="workload-card__bar"><span class="workload-card__fill" style="--fill:${fill}%"></span></div>
+        <div class="workload-card__meta">
+          <span>Accepted ${accepted}</span>
+          <span>In Progress ${inProgress}</span>
+          <span>Overdue ${overdue}</span>
+        </div>
+      </button>
+    `;
+  });
+
+  els.supervisorWorkloadCards.innerHTML = cards.length
+    ? cards.join('')
+    : emptyStateHTML('No team members', 'Add team users to see workload cards.');
+}
+
+function renderSupervisorBoardLanes(tasks) {
+  const lanes = [
+    { title: 'New / Queue', status: 'New' },
+    { title: 'Accepted', status: 'Accepted' },
+    { title: 'In Progress', status: 'In Progress' },
+    { title: 'Done', status: 'Done' }
+  ];
+
+  els.supervisorBoardLanes.innerHTML = lanes.map((lane) => {
+    const laneTasks = tasks.filter((task) => task.status === lane.status).slice(0, 6);
+    return `
+      <section class="board-lane">
+        <div class="board-lane__head">
+          <div class="board-lane__title">${escapeHtml(lane.title)}</div>
+          <div class="board-lane__count">${escapeHtml(String(tasks.filter((task) => task.status === lane.status).length))}</div>
+        </div>
+        <div class="board-lane__body">
+          ${laneTasks.length ? laneTasks.map((task) => boardMiniCardHTML(task)).join('') : '<div class="helper-text">No task in this lane.</div>'}
+        </div>
+      </section>
+    `;
+  }).join('');
+}
+
+function boardMiniCardHTML(task) {
+  const overdueClass = isTaskOverdue(task) ? ' is-overdue' : '';
+  return `
+    <article class="board-mini-card${overdueClass}">
+      <div class="board-mini-card__top">
+        <span class="board-mini-card__ticket">${escapeHtml(task.ticketNo)}</span>
+        <span class="board-mini-card__ticket">${timeAgo(task.updatedAt || task.createdAt)}</span>
+      </div>
+      <h4 class="board-mini-card__title">${escapeHtml(task.subject)}</h4>
+      <div class="board-mini-card__meta">
+        <span>${escapeHtml(task.location)}</span>
+        <span>${escapeHtml(task.assignedToName || 'Unassigned')}</span>
+      </div>
+      <div class="board-mini-card__badges">
+        <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
+        <span class="badge ${statusBadgeClass(task.status)}">${escapeHtml(task.status)}</span>
+      </div>
+      <div class="board-mini-card__foot">
+        <span>Opened by ${escapeHtml(task.openedByDepartment)}</span>
+        <button class="btn btn-secondary board-mini-card__btn" type="button" data-task-view="${escapeHtml(task.id)}">Open</button>
+      </div>
+    </article>
+  `;
+}
+
+function buildSupervisorFilterHint() {
+  const quickMap = {
+    all: 'all team tasks',
+    active: 'active team tasks',
+    unassigned: 'unassigned queue',
+    assignedByMe: 'tasks assigned by me',
+    overdue: 'overdue tasks'
+  };
+  return `${state.currentUser.department} supervisor board / ${quickMap[state.teamQuickFilter] || 'all team tasks'} / ${getTeamAssigneeLabel()}`;
+}
+
+function onTeamQuickFilterClick(event) {
+  const chip = event.target.closest('[data-team-quick]');
+  if (!chip) return;
+  state.teamQuickFilter = chip.dataset.teamQuick;
+  Array.from(els.teamQuickFilters.querySelectorAll('[data-team-quick]')).forEach((node) => node.classList.toggle('is-active', node === chip));
+  renderTaskList();
+}
+
+function onTeamAssigneeFilterChange(event) {
+  state.teamAssigneeFilter = event.target.value;
+  renderTaskList();
+}
+
+function onWorkloadCardClick(event) {
+  const card = event.target.closest('[data-workload-owner]');
+  if (!card) return;
+  state.teamAssigneeFilter = card.dataset.workloadOwner;
+  els.teamAssigneeFilter.value = state.teamAssigneeFilter;
+  renderTaskList();
+}
+
+function onSupervisorBoardClick(event) {
+  const viewButton = event.target.closest('[data-task-view]');
+  if (!viewButton) return;
+  openTaskDetail(viewButton.dataset.taskView);
+}
+
+function resetSupervisorTaskBoardFilters(silent = false) {
+  if (!isSupervisor()) return;
+  state.teamQuickFilter = 'all';
+  state.teamAssigneeFilter = '__ALL__';
+  if (els.teamQuickFilters) {
+    Array.from(els.teamQuickFilters.querySelectorAll('[data-team-quick]')).forEach((chip) => chip.classList.toggle('is-active', chip.dataset.teamQuick === 'all'));
+  }
+  if (els.teamAssigneeFilter) {
+    els.teamAssigneeFilter.value = '__ALL__';
+  }
+  if (!silent) renderTaskList();
+}
+
+function getSupervisorBoardSummaryTasks() {
+  return getSupervisorTaskScope({ ignoreAssigneeFilter: true, ignoreStatusFilter: true, ignoreHighOnly: true, ignoreSearch: true }).filter((task) => task.department === state.currentUser.department);
+}
+
+function getSupervisorBoardWorkloadTasks() {
+  return getSupervisorTaskScope({ ignoreAssigneeFilter: true, ignoreStatusFilter: true }).filter((task) => task.department === state.currentUser.department);
+}
+
+function getSupervisorBoardLaneTasks() {
+  return getSupervisorTaskScope({ ignoreStatusFilter: true }).filter((task) => task.department === state.currentUser.department);
+}
+
+function getSupervisorTaskScope(options = {}) {
+  const {
+    ignoreAssigneeFilter = false,
+    ignoreStatusFilter = false,
+    ignoreHighOnly = false,
+    ignoreSearch = false
+  } = options;
+
+  let tasks = getTaskContextFilteredTasks(getVisibleTasks(getTasks())).filter((task) => task.department === state.currentUser.department);
+  tasks = tasks.filter((task) => matchesSupervisorQuickFilter(task));
+  if (!ignoreAssigneeFilter) tasks = tasks.filter((task) => matchesSupervisorAssigneeFilter(task));
+  if (!ignoreStatusFilter) tasks = tasks.filter((task) => state.taskStatusFilter === 'All' || task.status === state.taskStatusFilter);
+  if (!ignoreHighOnly) tasks = tasks.filter((task) => !state.highOnly || ['High', 'Urgent'].includes(task.priority));
+  if (!ignoreSearch) tasks = tasks.filter((task) => matchesSearch(task, state.taskSearch));
+  return tasks.sort(sortTasks);
+}
+
+function matchesSupervisorQuickFilter(task) {
+  switch (state.teamQuickFilter) {
+    case 'active':
+      return ['Accepted', 'In Progress'].includes(task.status);
+    case 'unassigned':
+      return task.status === 'New' && !task.assignedToName;
+    case 'assignedByMe':
+      return !['Done', 'Closed'].includes(task.status) && task.assignedByName === state.currentUser.name;
+    case 'overdue':
+      return isTaskOverdue(task);
+    default:
+      return true;
+  }
+}
+
+function matchesSupervisorAssigneeFilter(task) {
+  if (state.teamAssigneeFilter === '__ALL__') return true;
+  if (state.teamAssigneeFilter === '__UNASSIGNED__') return !task.assignedToName;
+  if (state.teamAssigneeFilter === '__ME__') return task.assignedToName === state.currentUser.name;
+  if (state.teamAssigneeFilter.startsWith('name:')) return task.assignedToName === state.teamAssigneeFilter.replace('name:', '');
+  return true;
+}
+
+function getTeamUsers(department) {
+  return users.filter((user) => user.department === department && user.role !== 'Manager');
+}
+
+function getTeamAssigneeLabel() {
+  if (state.teamAssigneeFilter === '__ALL__') return 'all owners';
+  if (state.teamAssigneeFilter === '__UNASSIGNED__') return 'unassigned only';
+  if (state.teamAssigneeFilter === '__ME__') return `assigned to me (${state.currentUser.name})`;
+  if (state.teamAssigneeFilter.startsWith('name:')) return `owner ${state.teamAssigneeFilter.replace('name:', '')}`;
+  return 'all owners';
+}
+
+function matchesSelectedAssigneeName(name) {
+  return state.teamAssigneeFilter === `name:${name}` || (state.teamAssigneeFilter === '__ME__' && name === state.currentUser.name);
 }
 
 function renderTaskDetail() {
@@ -1778,6 +2057,7 @@ function canTransitionTask(task, action) {
 }
 
 function getTaskListResults() {
+  if (isSupervisor()) return getSupervisorTaskScope();
   return getTaskContextFilteredTasks(getVisibleTasks(getTasks()))
     .filter((task) => state.taskStatusFilter === 'All' || task.status === state.taskStatusFilter)
     .filter((task) => !state.highOnly || ['High', 'Urgent'].includes(task.priority))

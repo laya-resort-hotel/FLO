@@ -39,7 +39,7 @@
         </section>
 
         <div class="login-footer">
-          <span>v1.9.0 Supervisor Assign Flow</span>
+          <span>v1.10.0 Supervisor Task Board</span>
           <span>Local Demo</span>
         </div>
 
@@ -199,6 +199,59 @@
         </section>
 
         <section id="page-tasks" class="page-view">
+          <section id="supervisor-board" class="section supervisor-board hidden">
+            <div class="card supervisor-board__hero">
+              <div class="section__header section__header--home">
+                <div>
+                  <h2 class="section__title">Supervisor Task Board</h2>
+                  <span id="team-filter-hint" class="section__hint">Track team queue, ownership, and workload in one place</span>
+                </div>
+                <button id="team-filter-clear" class="link-btn" type="button">Reset Team Filter</button>
+              </div>
+              <div id="supervisor-board-summary" class="summary-grid"></div>
+            </div>
+
+            <div class="card supervisor-board__filters">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">Team Filter</h3>
+                  <span class="section__hint">Choose a queue view or focus on one owner</span>
+                </div>
+              </div>
+              <div id="team-quick-filters" class="chips-scroll">
+                <button class="chip is-active" type="button" data-team-quick="all">All Team</button>
+                <button class="chip" type="button" data-team-quick="active">Active</button>
+                <button class="chip" type="button" data-team-quick="unassigned">Unassigned</button>
+                <button class="chip" type="button" data-team-quick="assignedByMe">Assigned by Me</button>
+                <button class="chip" type="button" data-team-quick="overdue">Overdue</button>
+              </div>
+              <div class="field">
+                <label class="label" for="team-assignee-filter">Owner</label>
+                <select id="team-assignee-filter" class="select"></select>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">Workload by Staff</h3>
+                  <span class="section__hint">Tap a card to focus the tasks list on one owner</span>
+                </div>
+              </div>
+              <div id="supervisor-workload-cards" class="workload-grid"></div>
+            </div>
+
+            <div class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">Task Board</h3>
+                  <span class="section__hint">Live team queue by status</span>
+                </div>
+              </div>
+              <div id="supervisor-board-lanes" class="board-lanes"></div>
+            </div>
+          </section>
+
           <nav id="task-status-tabs" class="tabs-scroll">
             <button class="tab is-active" type="button" data-status="All">All</button>
             <button class="tab" type="button" data-status="New">New</button>
