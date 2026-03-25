@@ -39,7 +39,7 @@
         </section>
 
         <div class="login-footer">
-          <span>v1.12.0 MOD Checklist</span>
+          <span>v1.12.4 MOD Home Polish</span>
           <span>Local Demo</span>
         </div>
 
@@ -77,21 +77,41 @@
 
       <main class="page">
                 <section id="page-home" class="page-view page-view--active">
-          <section class="summary-grid">
+          <section id="mod-home-hero" class="section mod-home hidden">
+            <div class="card mod-home__hero">
+              <div class="mod-home__header">
+                <div>
+                  <span class="mod-home__eyebrow">Manager on Duty</span>
+                  <h2 class="mod-home__title">Hotel Daily Inspection Control Room</h2>
+                  <p class="mod-home__subtitle">Track findings, open follow-up, and monitor critical hotel issues across all departments in one place.</p>
+                </div>
+                <div id="mod-home-shift-chip" class="mod-home__shift">MOD Today</div>
+              </div>
+              <div id="mod-home-highlights" class="mod-home__highlights"></div>
+              <div class="mod-home__actions">
+                <button id="mod-home-open-report-btn" class="btn btn-primary" type="button">Open New Finding</button>
+                <button id="mod-home-view-findings-btn" class="btn btn-secondary" type="button">Today's Findings</button>
+                <button id="mod-home-high-risk-btn" class="btn btn-secondary" type="button">High Risk Items</button>
+                <button id="mod-home-followup-btn" class="btn btn-secondary" type="button">MOD Follow-up</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="home-summary-grid" class="summary-grid">
             <article class="card stat-card">
-              <span class="stat-card__label">New</span>
+              <span id="stat-new-label" class="stat-card__label">New</span>
               <strong id="stat-new" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span class="stat-card__label">In Progress</span>
+              <span id="stat-progress-label" class="stat-card__label">In Progress</span>
               <strong id="stat-progress" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span class="stat-card__label">Done Today</span>
+              <span id="stat-done-label" class="stat-card__label">Done Today</span>
               <strong id="stat-done" class="stat-card__value">0</strong>
             </article>
             <article class="card stat-card">
-              <span class="stat-card__label">Urgent</span>
+              <span id="stat-urgent-label" class="stat-card__label">Urgent</span>
               <strong id="stat-urgent" class="stat-card__value">0</strong>
             </article>
           </section>

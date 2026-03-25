@@ -297,6 +297,18 @@ const els = {
   statProgress: document.getElementById('stat-progress'),
   statDone: document.getElementById('stat-done'),
   statUrgent: document.getElementById('stat-urgent'),
+  homeSummaryGrid: document.getElementById('home-summary-grid'),
+  statNewLabel: document.getElementById('stat-new-label'),
+  statProgressLabel: document.getElementById('stat-progress-label'),
+  statDoneLabel: document.getElementById('stat-done-label'),
+  statUrgentLabel: document.getElementById('stat-urgent-label'),
+  modHomeHero: document.getElementById('mod-home-hero'),
+  modHomeShiftChip: document.getElementById('mod-home-shift-chip'),
+  modHomeHighlights: document.getElementById('mod-home-highlights'),
+  modHomeOpenReportBtn: document.getElementById('mod-home-open-report-btn'),
+  modHomeViewFindingsBtn: document.getElementById('mod-home-view-findings-btn'),
+  modHomeHighRiskBtn: document.getElementById('mod-home-high-risk-btn'),
+  modHomeFollowupBtn: document.getElementById('mod-home-followup-btn'),
   dashOpen: document.getElementById('dash-open'),
   dashProgress: document.getElementById('dash-progress'),
   dashOverdue: document.getElementById('dash-overdue'),
@@ -459,7 +471,7 @@ function bindEvents() {
   els.navHistory.addEventListener('click', () => showPage('history'));
   els.navMod.addEventListener('click', () => showPage('mod'));
   els.navReports.addEventListener('click', () => showPage('reports'));
-  els.homeCreateBtn.addEventListener('click', () => showPage('create'));
+  els.homeCreateBtn.addEventListener('click', onHomeCreateClick);
   els.homeViewTasksBtn.addEventListener('click', openDepartmentTasksFromHome);
   els.cancelCreateBtn.addEventListener('click', () => showPage(getDefaultLandingPage()));
   els.createTaskForm.addEventListener('submit', onCreateTask);
@@ -510,6 +522,10 @@ function bindEvents() {
   els.modSearch.addEventListener('input', onModSearchInput);
   els.modReportsList.addEventListener('click', onModReportListClick);
   els.modDetailPanel.addEventListener('click', onModDetailClick);
+  els.modHomeOpenReportBtn.addEventListener('click', openModReportFromHome);
+  els.modHomeViewFindingsBtn.addEventListener('click', openModFindingsFromHome);
+  els.modHomeHighRiskBtn.addEventListener('click', openModHighRiskFromHome);
+  els.modHomeFollowupBtn.addEventListener('click', () => openTaskPreset('modLinkedTasks'));
   els.dashGoTasks.addEventListener('click', () => { clearTaskContext(); showPage('tasks'); });
   els.dashGoHistory.addEventListener('click', () => showPage('history'));
   els.dashGoReports.addEventListener('click', () => showPage('reports'));
@@ -664,6 +680,29 @@ function renderApp() {
 function renderSummary(tasks) {
   const visibleTasks = getVisibleTasks(tasks);
   const todayKey = new Date().toDateString();
+
+  if (isMOD()) {
+    const reports = getModReports();
+    const openFindings = reports.filter((report) => !['Resolved', 'Closed'].includes(report.status)).length;
+    const highRisk = reports.filter((report) => !['Resolved', 'Closed'].includes(report.status) && ['High', 'Urgent'].includes(report.priority)).length;
+    const withMedia = reports.filter((report) => (report.attachments || []).length > 0).length;
+    const todaySubmitted = reports.filter((report) => new Date(report.createdAt).toDateString() === todayKey).length;
+
+    els.statNewLabel.textContent = 'Open Findings';
+    els.statProgressLabel.textContent = 'High Risk';
+    els.statDoneLabel.textContent = 'With Media';
+    els.statUrgentLabel.textContent = 'Today Submitted';
+    els.statNew.textContent = openFindings;
+    els.statProgress.textContent = highRisk;
+    els.statDone.textContent = withMedia;
+    els.statUrgent.textContent = todaySubmitted;
+    return;
+  }
+
+  els.statNewLabel.textContent = 'New';
+  els.statProgressLabel.textContent = 'In Progress';
+  els.statDoneLabel.textContent = 'Done Today';
+  els.statUrgentLabel.textContent = 'Urgent';
   els.statNew.textContent = visibleTasks.filter((t) => t.status === 'New').length;
   els.statProgress.textContent = visibleTasks.filter((t) => t.status === 'In Progress').length;
   els.statDone.textContent = visibleTasks.filter((t) => t.doneAt && new Date(t.doneAt).toDateString() === todayKey).length;
@@ -675,6 +714,13 @@ function renderHomeContent(tasks) {
 
   const visibleTasks = getVisibleTasks(tasks);
   const config = getHomeConfig();
+  const modMode = isMOD();
+
+  els.home.classList.toggle('page-home--mod', modMode);
+  els.homeSummaryGrid.classList.toggle('summary-grid--mod', modMode);
+  els.modHomeHero.classList.toggle('hidden', !modMode);
+  els.homeCreateBtn.textContent = modMode ? 'Open New Finding' : '+ Create Task';
+  if (modMode) renderModHomeHero(tasks);
   const sectionBindings = [
     {
       title: els.homeSection1Title,
@@ -717,6 +763,92 @@ function renderHomeContent(tasks) {
   els.recentActivityTitle.textContent = config.activityTitle;
   els.recentActivityHint.textContent = config.activityHint;
   renderRecentActivity(visibleTasks, config.activityPreset);
+}
+
+function renderModHomeHero(tasks) {
+  const visibleTasks = getVisibleTasks(tasks);
+  const reports = getModReports();
+  const openReports = reports.filter((report) => !['Resolved', 'Closed'].includes(report.status));
+  const todayKey = new Date().toDateString();
+  const todayReports = reports.filter((report) => new Date(report.createdAt).toDateString() === todayKey);
+  const withMedia = reports.filter((report) => (report.attachments || []).length > 0).length;
+  const highRisk = openReports.filter((report) => ['High', 'Urgent'].includes(report.priority));
+  const modLinkedOpen = visibleTasks.filter((task) => !['Done', 'Closed'].includes(task.status) && (task.sourceType === 'MOD' || /^MOD-/i.test(task.sourceReference || '')));
+  const overdueTasks = visibleTasks.filter((task) => !['Done', 'Closed'].includes(task.status) && isTaskOverdue(task));
+  const deptLoad = ['FO', 'HK', 'Engineering', 'FB']
+    .map((department) => ({
+      department,
+      openCount: visibleTasks.filter((task) => task.department === department && !['Done', 'Closed'].includes(task.status)).length
+    }))
+    .sort((a, b) => b.openCount - a.openCount);
+  const topDept = deptLoad[0]?.openCount ? `${deptLoad[0].department} leads with ${deptLoad[0].openCount} open` : 'All departments are steady';
+  const secondDept = deptLoad[1]?.openCount ? `${deptLoad[1].department} next at ${deptLoad[1].openCount}` : 'Balanced queue across teams';
+
+  els.modHomeShiftChip.textContent = getModShiftLabel();
+  els.modHomeHighlights.innerHTML = [
+    {
+      label: 'Open Findings',
+      value: openReports.length,
+      note: `${highRisk.length} high / urgent still open`
+    },
+    {
+      label: "Today's Findings",
+      value: todayReports.length,
+      note: `${withMedia} report(s) with photo / video`
+    },
+    {
+      label: 'MOD Follow-up Tasks',
+      value: modLinkedOpen.length,
+      note: modLinkedOpen.length ? 'Open tasks created from MOD inspection' : 'No linked follow-up task right now'
+    },
+    {
+      label: 'Hotel Pressure Points',
+      value: overdueTasks.length,
+      note: overdueTasks.length ? `${topDept} · ${secondDept}` : topDept
+    }
+  ].map((item) => `
+    <article class="mod-home__mini">
+      <span class="mod-home__mini-label">${escapeHtml(item.label)}</span>
+      <strong class="mod-home__mini-value">${item.value}</strong>
+      <span class="mod-home__mini-note">${escapeHtml(item.note)}</span>
+    </article>
+  `).join('');
+}
+
+function getModShiftLabel() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'AM MOD Round';
+  if (hour < 18) return 'PM MOD Round';
+  return 'Night MOD Round';
+}
+
+function onHomeCreateClick() {
+  if (isMOD()) {
+    openModReportFromHome();
+    return;
+  }
+  showPage('create');
+}
+
+function openModReportFromHome() {
+  showPage('mod');
+  setTimeout(() => els.modSubject?.focus(), 0);
+}
+
+function openModFindingsFromHome() {
+  state.modFilter = 'all';
+  state.modSearch = '';
+  if (els.modSearch) els.modSearch.value = '';
+  showPage('mod');
+  renderModPage();
+}
+
+function openModHighRiskFromHome() {
+  state.modFilter = 'high';
+  state.modSearch = '';
+  if (els.modSearch) els.modSearch.value = '';
+  showPage('mod');
+  renderModPage();
 }
 
 function renderRecentActivity(tasks, preset = 'departmentRecent') {
