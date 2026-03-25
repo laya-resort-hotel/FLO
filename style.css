@@ -1818,3 +1818,42 @@ button { cursor: pointer; }
     overflow: visible;
   }
 }
+
+/* v1.14.7 stronger lock for MOD media side panel */
+@media (min-width: 720px) {
+  .mod-compose-grid {
+    align-items: start;
+  }
+
+  .mod-side-stack {
+    position: sticky;
+    top: 82px;
+    align-self: start;
+    max-height: calc(100vh - 96px);
+    overflow: hidden;
+  }
+
+  .mod-evidence-card {
+    height: min(520px, calc(100vh - 180px));
+    max-height: min(520px, calc(100vh - 180px));
+    overflow: hidden;
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .mod-upload-field {
+    flex: 0 0 auto;
+  }
+
+  #mod-media-preview {
+    min-height: 0;
+    height: 100%;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+  }
+
+  .mod-create-task-card {
+    flex: 0 0 auto;
+  }
+}
