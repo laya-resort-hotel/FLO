@@ -1472,3 +1472,127 @@ button { cursor: pointer; }
   background: rgba(198, 71, 71, 0.2);
   color: #ffd7d7;
 }
+
+/* MOD layout refinement */
+.mod-hero {
+  padding: 18px;
+  gap: 16px;
+  overflow: hidden;
+}
+.mod-hero .section__header {
+  margin-bottom: 0;
+}
+.mod-hero .section__title {
+  font-size: 16px;
+  line-height: 1.2;
+}
+.mod-hero .section__hint {
+  display: inline-block;
+  margin-top: 4px;
+  color: rgba(255,255,255,0.84);
+}
+.mod-compose-grid {
+  gap: 14px;
+}
+.mod-compose-card,
+.mod-evidence-card,
+.mod-side-card,
+.mod-findings-toolbar,
+.mod-list-card,
+.mod-detail-card {
+  overflow: hidden;
+}
+.mod-compose-card {
+  display: grid;
+  gap: 14px;
+}
+.mod-meta-grid,
+.mod-body-grid {
+  display: grid;
+  gap: 12px;
+}
+.mod-meta-grid .chip-group {
+  align-content: start;
+}
+.mod-evidence-card {
+  display: grid;
+  gap: 12px;
+}
+.mod-evidence-card .field {
+  gap: 10px;
+}
+.mod-evidence-card .helper-text {
+  margin: 0;
+}
+.mod-side-card {
+  align-self: start;
+}
+.mod-findings-toolbar {
+  display: grid;
+  gap: 12px;
+}
+.mod-findings-toolbar .field {
+  margin: 0;
+}
+.mod-review-grid {
+  margin-top: 14px;
+}
+.mod-list-card,
+.mod-detail-card {
+  min-height: 420px;
+}
+.mod-detail-card {
+  position: sticky;
+  top: 82px;
+}
+.mod-create-task-card .toggle-row {
+  align-items: flex-start;
+}
+.mod-create-task-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+#mod-reports-list {
+  max-height: 64vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+#mod-detail-panel {
+  max-height: 64vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+@media (min-width: 720px) {
+  .mod-compose-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+    align-items: start;
+  }
+  .mod-compose-card {
+    grid-row: span 2;
+  }
+  .mod-meta-grid {
+    grid-template-columns: 1.15fr 0.95fr 1.05fr;
+    align-items: start;
+  }
+  .mod-body-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mod-findings-toolbar {
+    grid-template-columns: 1fr minmax(260px, 340px);
+    align-items: end;
+  }
+  .mod-review-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  }
+}
+@media (max-width: 719px) {
+  .mod-hero {
+    padding: 16px;
+  }
+  .mod-hero .stat-card {
+    min-height: 92px;
+  }
+  .mod-findings-toolbar .chips-scroll {
+    padding-bottom: 2px;
+  }
+}

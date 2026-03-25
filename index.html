@@ -637,8 +637,8 @@
             <div id="mod-summary-grid" class="summary-grid summary-grid--dashboard"></div>
           </section>
 
-          <form id="mod-report-form" class="form-stack">
-            <section class="card">
+          <form id="mod-report-form" class="form-stack mod-compose-grid">
+            <section class="card mod-compose-card">
               <div class="section__header section__header--home">
                 <div>
                   <h3 class="block-title">Open New MOD Finding</h3>
@@ -649,7 +649,7 @@
               <input id="mod-area" type="hidden" value="General" />
               <input id="mod-location" type="hidden" value="-" />
 
-              <div class="filters-grid">
+              <div class="mod-meta-grid">
                 <div class="field">
                   <label class="label">Owner Department</label>
                   <div class="chip-group chip-group--grid4" id="mod-department-chips">
@@ -672,17 +672,16 @@
                     <option value="Other">Other</option>
                   </select>
                 </div>
-              </div>
-
-              <div class="field">
-                <label class="label">Severity</label>
-                <div class="chip-group chip-group--grid4" id="mod-priority-chips">
-                  <button class="chip" type="button" data-value="Low">Low</button>
-                  <button class="chip" type="button" data-value="Medium">Medium</button>
-                  <button class="chip" type="button" data-value="High">High</button>
-                  <button class="chip" type="button" data-value="Urgent">Urgent</button>
+                <div class="field">
+                  <label class="label">Severity</label>
+                  <div class="chip-group chip-group--grid4" id="mod-priority-chips">
+                    <button class="chip" type="button" data-value="Low">Low</button>
+                    <button class="chip" type="button" data-value="Medium">Medium</button>
+                    <button class="chip" type="button" data-value="High">High</button>
+                    <button class="chip" type="button" data-value="Urgent">Urgent</button>
+                  </div>
+                  <input id="mod-priority" type="hidden" required />
                 </div>
-                <input id="mod-priority" type="hidden" required />
               </div>
 
               <div class="field">
@@ -690,18 +689,20 @@
                 <input id="mod-subject" class="input" type="text" placeholder="Wet floor with no caution sign" required />
               </div>
 
-              <div class="field">
-                <label class="label" for="mod-detail">Issue Found</label>
-                <textarea id="mod-detail" class="textarea" placeholder="Describe what MOD found during inspection"></textarea>
-              </div>
+              <div class="mod-body-grid">
+                <div class="field">
+                  <label class="label" for="mod-detail">Issue Found</label>
+                  <textarea id="mod-detail" class="textarea" placeholder="Describe what MOD found during inspection"></textarea>
+                </div>
 
-              <div class="field">
-                <label class="label" for="mod-action-note">Immediate Action / Instruction</label>
-                <textarea id="mod-action-note" class="textarea" placeholder="What should team do next? Any guest risk or follow-up note?"></textarea>
+                <div class="field">
+                  <label class="label" for="mod-action-note">Immediate Action / Instruction</label>
+                  <textarea id="mod-action-note" class="textarea" placeholder="What should team do next? Any guest risk or follow-up note?"></textarea>
+                </div>
               </div>
             </section>
 
-            <section class="card">
+            <section class="card mod-evidence-card">
               <div class="section__header section__header--home">
                 <div>
                   <h3 class="block-title">Photo / Video Evidence</h3>
@@ -715,7 +716,7 @@
               <div id="mod-media-preview" class="mod-media-grid"></div>
             </section>
 
-            <section class="card mod-create-task-card">
+            <section class="card mod-create-task-card mod-side-card">
               <label class="toggle-row" for="mod-create-task-toggle">
                 <div>
                   <strong>Create follow-up task automatically</strong>
@@ -731,7 +732,7 @@
             <button id="mod-submit-btn" class="btn btn-primary" type="button">Submit MOD Report</button>
           </div>
 
-          <section class="card">
+          <section class="card mod-findings-toolbar">
             <div class="section__header section__header--home">
               <div>
                 <h3 class="block-title">Today Findings</h3>
@@ -750,8 +751,8 @@
             </div>
           </section>
 
-          <section class="section section-grid-2 mod-board-grid">
-            <div class="card">
+          <section class="section section-grid-2 mod-board-grid mod-review-grid">
+            <div class="card mod-list-card">
               <div class="section__header section__header--home">
                 <div>
                   <h3 class="block-title">MOD Report List</h3>
@@ -761,7 +762,7 @@
               <div id="mod-reports-list" class="task-list"></div>
             </div>
 
-            <div class="card">
+            <div class="card mod-detail-card">
               <div class="section__header section__header--home">
                 <div>
                   <h3 class="block-title">MOD Report Detail</h3>
