@@ -10,11 +10,11 @@ service cloud.firestore {
       allow write: if signedIn();
     }
 
-    match /tasks/{taskId} {
+    match /tasks_clean/{taskId} {
       allow read, write: if signedIn();
     }
 
-    match /modReports/{reportId} {
+    match /modReports_clean/{reportId} {
       allow read, write: if signedIn();
     }
   }
