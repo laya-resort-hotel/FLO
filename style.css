@@ -1314,6 +1314,90 @@ button { cursor: pointer; }
   align-items: start;
 }
 
+.mod-section-head {
+  align-items: flex-start;
+}
+
+.mod-section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(31, 77, 58, 0.1);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.mod-section-badge--soft {
+  background: #f1f5f2;
+}
+
+.mod-side-stack {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.mod-upload-field {
+  gap: 10px;
+}
+
+.mod-upload-box {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 18px 16px;
+  border: 1px dashed #bfd2c8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f9fbfa 0%, #f3f7f4 100%);
+  cursor: pointer;
+}
+
+.mod-upload-box .input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.mod-upload-box__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.mod-upload-box__sub {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.mod-form-actions {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+}
+
+.mod-form-actions__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.mod-form-actions__copy strong {
+  font-size: 15px;
+}
+
+.mod-form-actions__buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .mod-create-task-card {
   margin-top: 0;
 }
@@ -1476,7 +1560,7 @@ button { cursor: pointer; }
 /* MOD layout refinement */
 .mod-hero {
   padding: 18px;
-  gap: 16px;
+  gap: 14px;
   overflow: hidden;
 }
 .mod-hero .section__header {
@@ -1497,6 +1581,7 @@ button { cursor: pointer; }
 .mod-compose-card,
 .mod-evidence-card,
 .mod-side-card,
+.mod-form-actions,
 .mod-findings-toolbar,
 .mod-list-card,
 .mod-detail-card {
@@ -1504,15 +1589,43 @@ button { cursor: pointer; }
 }
 .mod-compose-card {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 .mod-meta-grid,
 .mod-body-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
-.mod-meta-grid .chip-group {
+.mod-meta-grid .field,
+.mod-body-grid .field {
+  padding: 14px;
+  border: 1px solid #e7ece8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfa 100%);
+}
+.mod-meta-grid .field--category {
+  padding-bottom: 12px;
+}
+.mod-title-field {
+  padding: 16px;
+  border: 1px solid #e7ece8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfa 100%);
+}
+.mod-meta-grid .chip-group,
+.mod-body-grid .chip-group {
   align-content: start;
+}
+.mod-meta-grid .chip {
+  min-height: 40px;
+  padding: 0 13px;
+  background: #f8faf8;
+}
+.mod-meta-grid .chip.is-active {
+  box-shadow: 0 0 0 2px rgba(31, 77, 58, 0.08);
+}
+.mod-body-grid .textarea {
+  min-height: 150px;
 }
 .mod-evidence-card {
   display: grid;
@@ -1545,12 +1658,21 @@ button { cursor: pointer; }
   position: sticky;
   top: 82px;
 }
+.mod-create-task-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
+}
 .mod-create-task-card .toggle-row {
   align-items: flex-start;
 }
 .mod-create-task-card strong {
   display: block;
   margin-bottom: 4px;
+}
+.mod-media-grid {
+  gap: 10px;
+}
+.mod-media-placeholder {
+  min-height: 120px;
 }
 #mod-reports-list {
   max-height: 64vh;
@@ -1564,18 +1686,32 @@ button { cursor: pointer; }
 }
 @media (min-width: 720px) {
   .mod-compose-grid {
-    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.82fr);
     align-items: start;
   }
   .mod-compose-card {
     grid-row: span 2;
   }
+  .mod-side-stack {
+    position: sticky;
+    top: 82px;
+  }
   .mod-meta-grid {
-    grid-template-columns: 1.15fr 0.95fr 1.05fr;
+    grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
     align-items: start;
   }
+  .mod-meta-grid .field--severity {
+    grid-column: 1 / -1;
+  }
   .mod-body-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+  .mod-form-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .mod-form-actions__buttons {
+    min-width: 320px;
   }
   .mod-findings-toolbar {
     grid-template-columns: 1fr minmax(260px, 340px);
@@ -1591,6 +1727,17 @@ button { cursor: pointer; }
   }
   .mod-hero .stat-card {
     min-height: 92px;
+  }
+  .mod-section-badge {
+    display: none;
+  }
+  .mod-meta-grid .field,
+  .mod-body-grid .field,
+  .mod-title-field {
+    padding: 12px;
+  }
+  .mod-body-grid .textarea {
+    min-height: 124px;
   }
   .mod-findings-toolbar .chips-scroll {
     padding-bottom: 2px;

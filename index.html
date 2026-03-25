@@ -639,18 +639,19 @@
 
           <form id="mod-report-form" class="form-stack mod-compose-grid">
             <section class="card mod-compose-card">
-              <div class="section__header section__header--home">
+              <div class="section__header section__header--home mod-section-head">
                 <div>
                   <h3 class="block-title">Open New MOD Finding</h3>
                   <span class="section__hint">Record issue, assign owner department, and attach photo or video</span>
                 </div>
+                <span class="mod-section-badge">New finding</span>
               </div>
 
               <input id="mod-area" type="hidden" value="General" />
               <input id="mod-location" type="hidden" value="-" />
 
               <div class="mod-meta-grid">
-                <div class="field">
+                <div class="field field--dept">
                   <label class="label">Owner Department</label>
                   <div class="chip-group chip-group--grid4" id="mod-department-chips">
                     <button class="chip" type="button" data-value="FO">FO</button>
@@ -660,7 +661,7 @@
                   </div>
                   <input id="mod-department" type="hidden" required />
                 </div>
-                <div class="field">
+                <div class="field field--category">
                   <label class="label" for="mod-category">Checklist Category</label>
                   <select id="mod-category" class="select">
                     <option value="Safety">Safety</option>
@@ -672,7 +673,7 @@
                     <option value="Other">Other</option>
                   </select>
                 </div>
-                <div class="field">
+                <div class="field field--severity">
                   <label class="label">Severity</label>
                   <div class="chip-group chip-group--grid4" id="mod-priority-chips">
                     <button class="chip" type="button" data-value="Low">Low</button>
@@ -684,53 +685,66 @@
                 </div>
               </div>
 
-              <div class="field">
+              <div class="field mod-title-field">
                 <label class="label" for="mod-subject">Finding Title</label>
                 <input id="mod-subject" class="input" type="text" placeholder="Wet floor with no caution sign" required />
               </div>
 
               <div class="mod-body-grid">
-                <div class="field">
+                <div class="field field--issue">
                   <label class="label" for="mod-detail">Issue Found</label>
                   <textarea id="mod-detail" class="textarea" placeholder="Describe what MOD found during inspection"></textarea>
                 </div>
 
-                <div class="field">
+                <div class="field field--action">
                   <label class="label" for="mod-action-note">Immediate Action / Instruction</label>
                   <textarea id="mod-action-note" class="textarea" placeholder="What should team do next? Any guest risk or follow-up note?"></textarea>
                 </div>
               </div>
             </section>
 
-            <section class="card mod-evidence-card">
-              <div class="section__header section__header--home">
-                <div>
-                  <h3 class="block-title">Photo / Video Evidence</h3>
-                  <span class="section__hint">Take photo, record video, or upload from device</span>
+            <div class="mod-side-stack">
+              <section class="card mod-evidence-card">
+                <div class="section__header section__header--home mod-section-head">
+                  <div>
+                    <h3 class="block-title">Photo / Video Evidence</h3>
+                    <span class="section__hint">Take photo, record video, or upload from device</span>
+                  </div>
+                  <span class="mod-section-badge mod-section-badge--soft">Media</span>
                 </div>
-              </div>
-              <div class="field">
-                <input id="mod-media-input" class="input" type="file" accept="image/*,video/*" capture="environment" multiple />
-                <p class="helper-text">Local demo: smaller files can be previewed in-app. Large videos may be saved as filename only.</p>
-              </div>
-              <div id="mod-media-preview" class="mod-media-grid"></div>
-            </section>
+                <div class="field mod-upload-field">
+                  <label class="mod-upload-box" for="mod-media-input">
+                    <input id="mod-media-input" class="input" type="file" accept="image/*,video/*" capture="environment" multiple />
+                    <span class="mod-upload-box__title">Choose photo or video</span>
+                    <span class="mod-upload-box__sub">Tap to upload from device camera or gallery</span>
+                  </label>
+                  <p class="helper-text">Smaller files preview in app. Large videos may be saved as filename only.</p>
+                </div>
+                <div id="mod-media-preview" class="mod-media-grid"></div>
+              </section>
 
-            <section class="card mod-create-task-card mod-side-card">
-              <label class="toggle-row" for="mod-create-task-toggle">
-                <div>
-                  <strong>Create follow-up task automatically</strong>
-                  <p class="helper-text">When on, the finding will also open a normal department task for follow-up.</p>
-                </div>
-                <input id="mod-create-task-toggle" type="checkbox" checked />
-              </label>
+              <section class="card mod-create-task-card mod-side-card">
+                <label class="toggle-row" for="mod-create-task-toggle">
+                  <div>
+                    <strong>Create follow-up task automatically</strong>
+                    <p class="helper-text">Also open a normal department task for follow-up.</p>
+                  </div>
+                  <input id="mod-create-task-toggle" type="checkbox" checked />
+                </label>
+              </section>
+            </div>
+
+            <section class="card mod-form-actions">
+              <div class="mod-form-actions__copy">
+                <strong>Ready to submit?</strong>
+                <span class="section__hint">Review department, severity, and evidence before creating the MOD report.</span>
+              </div>
+              <div class="mod-form-actions__buttons">
+                <button id="mod-reset-btn" class="btn btn-secondary" type="button">Reset</button>
+                <button id="mod-submit-btn" class="btn btn-primary" type="button">Submit MOD Report</button>
+              </div>
             </section>
           </form>
-
-          <div class="sticky-submit-bar">
-            <button id="mod-reset-btn" class="btn btn-secondary" type="button">Reset</button>
-            <button id="mod-submit-btn" class="btn btn-primary" type="button">Submit MOD Report</button>
-          </div>
 
           <section class="card mod-findings-toolbar">
             <div class="section__header section__header--home">
