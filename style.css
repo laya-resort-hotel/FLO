@@ -837,3 +837,25 @@ button { cursor: pointer; }
   font-size: 12px;
   font-weight: 700;
 }
+
+.section__header--home {
+  align-items: flex-start;
+}
+
+.task-context-bar {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-alt);
+}
+
+.task-context-bar__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-soft);
+}

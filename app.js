@@ -1,4 +1,4 @@
-﻿const STORAGE_KEYS = {
+const STORAGE_KEYS = {
   currentUser: 'lsh_current_user',
   tasks: 'lsh_tasks'
 };
@@ -214,11 +214,24 @@ const els = {
   navReports: document.getElementById('nav-reports'),
   bottomNav: document.getElementById('bottom-nav'),
   homeCreateBtn: document.getElementById('home-create-btn'),
-  homeViewTasksBtn: document.getElementById('home-view-tasks-btn'),
   topbarTitle: document.getElementById('topbar-title'),
   topbarSubtitle: document.getElementById('topbar-subtitle'),
   openedByText: document.getElementById('opened-by-text'),
-  homeTaskList: document.getElementById('home-task-list'),
+  homeViewTasksBtn: document.getElementById('home-view-tasks-btn'),
+  homeSection1Title: document.getElementById('home-section-1-title'),
+  homeSection1Hint: document.getElementById('home-section-1-hint'),
+  homeSection1Btn: document.getElementById('home-section-1-btn'),
+  homeSection1List: document.getElementById('home-section-1-list'),
+  homeSection2Title: document.getElementById('home-section-2-title'),
+  homeSection2Hint: document.getElementById('home-section-2-hint'),
+  homeSection2Btn: document.getElementById('home-section-2-btn'),
+  homeSection2List: document.getElementById('home-section-2-list'),
+  homeSection3Title: document.getElementById('home-section-3-title'),
+  homeSection3Hint: document.getElementById('home-section-3-hint'),
+  homeSection3Btn: document.getElementById('home-section-3-btn'),
+  homeSection3List: document.getElementById('home-section-3-list'),
+  recentActivityTitle: document.getElementById('recent-activity-title'),
+  recentActivityHint: document.getElementById('recent-activity-hint'),
   recentActivity: document.getElementById('recent-activity'),
   statNew: document.getElementById('stat-new'),
   statProgress: document.getElementById('stat-progress'),
@@ -241,6 +254,9 @@ const els = {
   taskStatusTabs: document.getElementById('task-status-tabs'),
   taskFilterHigh: document.getElementById('task-filter-high'),
   tasksSearch: document.getElementById('tasks-search'),
+  taskContextBar: document.getElementById('task-context-bar'),
+  taskContextLabel: document.getElementById('task-context-label'),
+  taskContextClear: document.getElementById('task-context-clear'),
   tasksList: document.getElementById('tasks-list'),
   detailTicket: document.getElementById('detail-ticket'),
   detailSubject: document.getElementById('detail-subject'),
@@ -301,6 +317,7 @@ const state = {
   taskStatusFilter: 'All',
   taskSearch: '',
   highOnly: false,
+  taskContext: 'all',
   historyPreset: 'today',
   reportPreset: 'today',
   reportViewMode: 'daily'
@@ -326,19 +343,25 @@ function bindEvents() {
   els.logoutBtn.addEventListener('click', logout);
   els.backBtn.addEventListener('click', onBack);
   els.navHome.addEventListener('click', () => showPage(isManager() ? 'dashboard' : 'home'));
-  els.navTasks.addEventListener('click', () => showPage('tasks'));
+  els.navTasks.addEventListener('click', () => { clearTaskContext(); showPage('tasks'); });
   els.navCreate.addEventListener('click', () => showPage('create'));
   els.navHistory.addEventListener('click', () => showPage('history'));
   els.navReports.addEventListener('click', () => showPage('reports'));
   els.homeCreateBtn.addEventListener('click', () => showPage('create'));
-  els.homeViewTasksBtn.addEventListener('click', () => showPage('tasks'));
+  els.homeViewTasksBtn.addEventListener('click', openDepartmentTasksFromHome);
   els.cancelCreateBtn.addEventListener('click', () => showPage(isManager() ? 'dashboard' : 'home'));
   els.createTaskForm.addEventListener('submit', onCreateTask);
   els.taskStatusTabs.addEventListener('click', onTaskTabClick);
   els.taskFilterHigh.addEventListener('click', toggleHighFilter);
+  els.taskContextClear.addEventListener('click', () => { clearTaskContext(); renderTaskList(); updateTopbar('tasks'); });
+  els.homeSection1Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[0].preset));
+  els.homeSection2Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[1].preset));
+  els.homeSection3Btn.addEventListener('click', () => openTaskPreset(getHomeConfig().sections[2].preset));
   els.tasksSearch.addEventListener('input', onTasksSearch);
   els.tasksList.addEventListener('click', onTaskCardClick);
-  els.homeTaskList.addEventListener('click', onTaskCardClick);
+  els.homeSection1List.addEventListener('click', onTaskCardClick);
+  els.homeSection2List.addEventListener('click', onTaskCardClick);
+  els.homeSection3List.addEventListener('click', onTaskCardClick);
   els.dashboardOverdue.addEventListener('click', onTaskCardClick);
   els.historyResults.addEventListener('click', onTaskCardClick);
   els.reportResults.addEventListener('click', onTaskCardClick);
@@ -359,7 +382,7 @@ function bindEvents() {
   els.reportStatus.addEventListener('change', renderReportsPage);
   els.reportExportCsv.addEventListener('click', exportReportCsv);
   els.reportExportPdf.addEventListener('click', exportReportPdf);
-  els.dashGoTasks.addEventListener('click', () => showPage('tasks'));
+  els.dashGoTasks.addEventListener('click', () => { clearTaskContext(); showPage('tasks'); });
   els.dashGoHistory.addEventListener('click', () => showPage('history'));
   els.dashGoReports.addEventListener('click', () => showPage('reports'));
 }
@@ -471,7 +494,7 @@ function updateTopbar(pageName) {
     home: [`Good Morning, ${state.currentUser.name}`, `${state.currentUser.department} / ${state.currentUser.role}`],
     dashboard: ['Manager Dashboard', 'Hotel operations overview'],
     create: ['Create Task', 'Open a new request'],
-    tasks: ['Tasks', 'Filter and track work orders'],
+    tasks: ['Tasks', getTaskPageSubtitle()],
     detail: ['Task Detail', 'View status, notes, and action'],
     history: ['History', 'Search previous tasks'],
     reports: ['Reports', 'Summary and export']
@@ -484,8 +507,7 @@ function updateTopbar(pageName) {
 function renderApp() {
   const tasks = getTasks();
   renderSummary(tasks);
-  renderHomeTasks(tasks);
-  renderRecentActivity(tasks);
+  renderHomeContent(tasks);
   renderTaskList();
   renderHistoryPage();
   if (isManager()) {
@@ -504,25 +526,59 @@ function renderSummary(tasks) {
   els.statUrgent.textContent = visibleTasks.filter((t) => t.priority === 'Urgent' && t.status !== 'Closed').length;
 }
 
-function renderHomeTasks(tasks) {
-  const visibleTasks = getVisibleTasks(tasks)
-    .filter((task) => task.status !== 'Closed')
-    .sort(sortTasks)
-    .slice(0, 5);
+function renderHomeContent(tasks) {
+  if (isManager()) return;
 
-  if (!visibleTasks.length) {
-    els.homeTaskList.innerHTML = emptyStateHTML('No tasks found', 'No visible tasks for this user yet.');
-    return;
-  }
+  const visibleTasks = getVisibleTasks(tasks);
+  const config = getHomeConfig();
+  const sectionBindings = [
+    {
+      title: els.homeSection1Title,
+      hint: els.homeSection1Hint,
+      button: els.homeSection1Btn,
+      list: els.homeSection1List,
+      config: config.sections[0]
+    },
+    {
+      title: els.homeSection2Title,
+      hint: els.homeSection2Hint,
+      button: els.homeSection2Btn,
+      list: els.homeSection2List,
+      config: config.sections[1]
+    },
+    {
+      title: els.homeSection3Title,
+      hint: els.homeSection3Hint,
+      button: els.homeSection3Btn,
+      list: els.homeSection3List,
+      config: config.sections[2]
+    }
+  ];
 
-  els.homeTaskList.innerHTML = visibleTasks.map((task) => taskCardHTML(task)).join('');
+  sectionBindings.forEach((section) => {
+    section.title.textContent = section.config.title;
+    section.hint.textContent = section.config.hint;
+    section.button.textContent = section.config.buttonLabel || 'Open';
+    const sectionTasks = getHomeTasksByPreset(visibleTasks, section.config.preset)
+      .filter((task) => task.status !== 'Closed')
+      .sort(sortTasks)
+      .slice(0, 4);
+
+    section.list.innerHTML = sectionTasks.length
+      ? sectionTasks.map((task) => taskCardHTML(task)).join('')
+      : emptyStateHTML(section.config.emptyTitle || 'No tasks found', section.config.emptyDescription || 'Nothing to follow up right now.');
+  });
+
+  els.homeViewTasksBtn.textContent = config.tasksButtonLabel;
+  els.recentActivityTitle.textContent = config.activityTitle;
+  els.recentActivityHint.textContent = config.activityHint;
+  renderRecentActivity(visibleTasks, config.activityPreset);
 }
 
-function renderRecentActivity(tasks) {
-  const allLogs = getVisibleTasks(tasks)
-    .flatMap((task) => (task.logs || []).map((log) => ({ ...log, task })))
+function renderRecentActivity(tasks, preset = 'departmentRecent') {
+  const allLogs = getHomeActivityEntries(tasks, preset)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 5);
+    .slice(0, 6);
 
   if (!allLogs.length) {
     els.recentActivity.innerHTML = '<div class="activity-row"><div class="activity-row__text">No recent activity</div></div>';
@@ -537,6 +593,268 @@ function renderRecentActivity(tasks) {
       <div class="activity-row__time">${timeAgo(entry.createdAt)}</div>
     </div>
   `).join('');
+}
+
+function getHomeConfig() {
+  const department = state.currentUser?.department;
+  const base = {
+    tasksButtonLabel: `View ${department} Tasks`,
+    activityTitle: `Latest ${department} Updates`,
+    activityHint: 'Recent team activity',
+    activityPreset: 'departmentRecent',
+    sections: []
+  };
+
+  if (department === 'FO') {
+    return {
+      ...base,
+      tasksButtonLabel: 'View FO Tasks',
+      activityTitle: 'Latest FO Updates',
+      sections: [
+        {
+          title: 'Need Follow-up',
+          hint: 'Opened by FO or waiting on FO follow-up',
+          buttonLabel: 'Open Follow-up',
+          preset: 'foFollowUp',
+          emptyTitle: 'No follow-up now',
+          emptyDescription: 'FO follow-up queue is clear.'
+        },
+        {
+          title: 'Recently Created by Me',
+          hint: 'Newest tickets opened by this account',
+          buttonLabel: 'Open Mine',
+          preset: 'createdByMe',
+          emptyTitle: 'No recent tickets',
+          emptyDescription: 'This account has not created a task yet.'
+        },
+        {
+          title: 'Urgent / Overdue',
+          hint: 'Guest-facing cases needing escalation',
+          buttonLabel: 'Open Urgent',
+          preset: 'foUrgentOverdue',
+          emptyTitle: 'No urgent FO cases',
+          emptyDescription: 'Nothing overdue or urgent in FO right now.'
+        }
+      ]
+    };
+  }
+
+  if (department === 'HK') {
+    return {
+      ...base,
+      tasksButtonLabel: 'View HK Tasks',
+      activityTitle: 'Latest HK Updates',
+      sections: [
+        {
+          title: 'New Tasks for HK',
+          hint: 'Fresh requests waiting for housekeeping',
+          buttonLabel: 'Open New',
+          preset: 'deptNew',
+          emptyTitle: 'No new HK tasks',
+          emptyDescription: 'No new housekeeping request in queue.'
+        },
+        {
+          title: 'My In Progress',
+          hint: 'Tasks currently worked by me',
+          buttonLabel: 'Open Mine',
+          preset: 'myInProgress',
+          emptyTitle: 'Nothing in progress',
+          emptyDescription: 'You do not have an active HK task yet.'
+        },
+        {
+          title: 'Urgent / Overdue',
+          hint: 'High-pressure tasks needing faster closure',
+          buttonLabel: 'Open Urgent',
+          preset: 'deptUrgentOverdue',
+          emptyTitle: 'No urgent HK tasks',
+          emptyDescription: 'HK queue is under control.'
+        }
+      ]
+    };
+  }
+
+  if (department === 'Engineering') {
+    return {
+      ...base,
+      tasksButtonLabel: 'View Engineering Tasks',
+      activityTitle: 'Latest Engineering Updates',
+      sections: [
+        {
+          title: 'Urgent Repairs',
+          hint: 'Critical engineering tickets first',
+          buttonLabel: 'Open Repairs',
+          preset: 'engUrgentRepairs',
+          emptyTitle: 'No urgent repairs',
+          emptyDescription: 'No urgent repair ticket at the moment.'
+        },
+        {
+          title: 'My In Progress',
+          hint: 'Repairs currently assigned to me',
+          buttonLabel: 'Open Mine',
+          preset: 'myInProgress',
+          emptyTitle: 'No engineering task in progress',
+          emptyDescription: 'Your active repair queue is empty.'
+        },
+        {
+          title: 'New Eng / Overdue',
+          hint: 'New requests and overdue items',
+          buttonLabel: 'Open Queue',
+          preset: 'engNewOrOverdue',
+          emptyTitle: 'No new or overdue Eng task',
+          emptyDescription: 'Engineering queue is balanced right now.'
+        }
+      ]
+    };
+  }
+
+  if (department === 'FB') {
+    return {
+      ...base,
+      tasksButtonLabel: 'View FB Tasks',
+      activityTitle: 'Latest FB Updates',
+      sections: [
+        {
+          title: 'New FB Requests',
+          hint: 'Fresh requests for food and beverage team',
+          buttonLabel: 'Open New',
+          preset: 'deptNew',
+          emptyTitle: 'No new FB requests',
+          emptyDescription: 'There is no new FB request waiting now.'
+        },
+        {
+          title: 'VIP Requests',
+          hint: 'VIP arrivals and special setup tasks',
+          buttonLabel: 'Open VIP',
+          preset: 'fbVip',
+          emptyTitle: 'No VIP request now',
+          emptyDescription: 'No VIP setup or special request at the moment.'
+        },
+        {
+          title: 'My In Progress / Overdue',
+          hint: 'Active work and anything needing escalation',
+          buttonLabel: 'Open Active',
+          preset: 'fbMyInProgressOrOverdue',
+          emptyTitle: 'No active FB follow-up',
+          emptyDescription: 'Your FB queue is clear for now.'
+        }
+      ]
+    };
+  }
+
+  return {
+    ...base,
+    sections: [
+      {
+        title: 'Need Attention',
+        hint: 'Open tasks for this department',
+        buttonLabel: 'Open Queue',
+        preset: 'deptOpen'
+      },
+      {
+        title: 'My In Progress',
+        hint: 'Active tasks assigned to me',
+        buttonLabel: 'Open Mine',
+        preset: 'myInProgress'
+      },
+      {
+        title: 'Urgent / Overdue',
+        hint: 'Items requiring attention first',
+        buttonLabel: 'Open Urgent',
+        preset: 'deptUrgentOverdue'
+      }
+    ]
+  };
+}
+
+function getHomeTasksByPreset(tasks, preset) {
+  const department = state.currentUser?.department;
+  const mine = (task) => task.assignedToName === state.currentUser?.name;
+  const openedByMe = (task) => task.openedByName === state.currentUser?.name;
+  const deptTask = (task) => task.department === department;
+  const activeTask = (task) => !['Done', 'Closed'].includes(task.status);
+  const urgentTask = (task) => ['Urgent', 'High'].includes(task.priority) || isTaskOverdue(task);
+  const vipTask = (task) => /vip|amenity|welcome/i.test(`${task.subject} ${task.detail} ${task.location}`);
+
+  const presets = {
+    all: tasks,
+    deptOnly: tasks.filter((task) => deptTask(task)),
+    deptOpen: tasks.filter((task) => deptTask(task) && activeTask(task)),
+    deptNew: tasks.filter((task) => deptTask(task) && task.status === 'New'),
+    myInProgress: tasks.filter((task) => mine(task) && task.status === 'In Progress'),
+    createdByMe: tasks.filter((task) => openedByMe(task)),
+    deptUrgentOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && urgentTask(task)),
+    foFollowUp: tasks.filter((task) => activeTask(task) && (task.openedByDepartment === 'FO' || mine(task) || task.department === 'FO')),
+    foUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task) && (task.openedByDepartment === 'FO' || task.department === 'FO')),
+    engUrgentRepairs: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (urgentTask(task) || task.category === 'Repair')),
+    engNewOrOverdue: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (task.status === 'New' || isTaskOverdue(task))),
+    fbVip: tasks.filter((task) => task.department === 'FB' && activeTask(task) && vipTask(task)),
+    fbMyInProgressOrOverdue: tasks.filter((task) => task.department === 'FB' && activeTask(task) && (mine(task) || isTaskOverdue(task) || task.status === 'In Progress')),
+    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department)
+  };
+
+  return presets[preset] || presets.all;
+}
+
+function getHomeActivityEntries(tasks, preset) {
+  return getHomeTasksByPreset(tasks, preset)
+    .flatMap((task) => (task.logs || []).map((log) => ({ ...log, task })));
+}
+
+function openDepartmentTasksFromHome() {
+  openTaskPreset('deptOnly');
+}
+
+function openTaskPreset(preset) {
+  resetTaskListControls();
+  setTaskContext(preset);
+  showPage('tasks');
+}
+
+function setTaskContext(preset) {
+  state.taskContext = preset || 'all';
+}
+
+function clearTaskContext() {
+  state.taskContext = 'all';
+}
+
+function resetTaskListControls() {
+  state.taskStatusFilter = 'All';
+  state.highOnly = false;
+  state.taskSearch = '';
+  if (els.tasksSearch) els.tasksSearch.value = '';
+  if (els.taskFilterHigh) els.taskFilterHigh.classList.remove('is-active');
+  Array.from(els.taskStatusTabs.querySelectorAll('.tab')).forEach((tab) => {
+    tab.classList.toggle('is-active', tab.dataset.status === 'All');
+  });
+}
+
+function getTaskContextFilteredTasks(tasks) {
+  return getHomeTasksByPreset(tasks, state.taskContext || 'all');
+}
+
+function getTaskContextLabel() {
+  const labels = {
+    all: '',
+    deptOnly: `${state.currentUser?.department || 'Department'} tasks`,
+    deptOpen: `${state.currentUser?.department || 'Department'} open tasks`,
+    deptNew: `${state.currentUser?.department || 'Department'} new tasks`,
+    myInProgress: 'My in progress tasks',
+    createdByMe: 'Recently created by me',
+    deptUrgentOverdue: `${state.currentUser?.department || 'Department'} urgent / overdue`,
+    foFollowUp: 'FO need follow-up',
+    foUrgentOverdue: 'FO urgent / overdue',
+    engUrgentRepairs: 'Engineering urgent repairs',
+    engNewOrOverdue: 'Engineering new / overdue',
+    fbVip: 'FB VIP requests',
+    fbMyInProgressOrOverdue: 'FB active / overdue'
+  };
+  return labels[state.taskContext] || '';
+}
+
+function getTaskPageSubtitle() {
+  const label = getTaskContextLabel();
+  return label ? `Filter and track work orders / ${label}` : 'Filter and track work orders';
 }
 
 function renderDashboardPage() {
@@ -584,6 +902,9 @@ function renderDashboardPage() {
 
 function renderTaskList() {
   const tasks = getTaskListResults();
+  const contextLabel = getTaskContextLabel();
+  els.taskContextBar.classList.toggle('hidden', !contextLabel);
+  els.taskContextLabel.textContent = contextLabel || 'Filtered view';
   els.tasksList.innerHTML = tasks.length
     ? tasks.map((task) => taskCardHTML(task)).join('')
     : emptyStateHTML('No matching tasks', 'Try another status or search keyword.');
@@ -1245,7 +1566,7 @@ function canTransitionTask(task, action) {
 }
 
 function getTaskListResults() {
-  return getVisibleTasks(getTasks())
+  return getTaskContextFilteredTasks(getVisibleTasks(getTasks()))
     .filter((task) => state.taskStatusFilter === 'All' || task.status === state.taskStatusFilter)
     .filter((task) => !state.highOnly || ['High', 'Urgent'].includes(task.priority))
     .filter((task) => matchesSearch(task, state.taskSearch))

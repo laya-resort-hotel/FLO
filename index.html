@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -39,7 +39,7 @@
         </section>
 
         <div class="login-footer">
-          <span>v1.7.0 Prototype</span>
+          <span>v1.8.0 Role Home Patch</span>
           <span>Local Demo</span>
         </div>
 
@@ -71,7 +71,7 @@
       </header>
 
       <main class="page">
-        <section id="page-home" class="page-view page-view--active">
+                <section id="page-home" class="page-view page-view--active">
           <section class="summary-grid">
             <article class="card stat-card">
               <span class="stat-card__label">New</span>
@@ -97,16 +97,44 @@
           </section>
 
           <section class="section">
-            <div class="section__header">
-              <h2 class="section__title">Need Attention</h2>
-              <span class="section__hint">Top priority tasks</span>
+            <div class="section__header section__header--home">
+              <div>
+                <h2 id="home-section-1-title" class="section__title">Need Attention</h2>
+                <span id="home-section-1-hint" class="section__hint">Priority tasks</span>
+              </div>
+              <button id="home-section-1-btn" class="link-btn" type="button">Open</button>
             </div>
-            <div id="home-task-list" class="task-list"></div>
+            <div id="home-section-1-list" class="task-list"></div>
+          </section>
+
+          <section class="section">
+            <div class="section__header section__header--home">
+              <div>
+                <h2 id="home-section-2-title" class="section__title">My Queue</h2>
+                <span id="home-section-2-hint" class="section__hint">Tasks waiting on me</span>
+              </div>
+              <button id="home-section-2-btn" class="link-btn" type="button">Open</button>
+            </div>
+            <div id="home-section-2-list" class="task-list"></div>
+          </section>
+
+          <section class="section">
+            <div class="section__header section__header--home">
+              <div>
+                <h2 id="home-section-3-title" class="section__title">Urgent / Overdue</h2>
+                <span id="home-section-3-hint" class="section__hint">Escalation needed</span>
+              </div>
+              <button id="home-section-3-btn" class="link-btn" type="button">Open</button>
+            </div>
+            <div id="home-section-3-list" class="task-list"></div>
           </section>
 
           <section class="section">
             <div class="section__header">
-              <h2 class="section__title">Recent Activity</h2>
+              <div>
+                <h2 id="recent-activity-title" class="section__title">Recent Activity</h2>
+                <span id="recent-activity-hint" class="section__hint">Latest updates</span>
+              </div>
             </div>
             <div id="recent-activity" class="card activity-list"></div>
           </section>
@@ -178,6 +206,11 @@
 
           <div class="chips-scroll">
             <button id="task-filter-high" class="chip" type="button">High+</button>
+          </div>
+
+          <div id="task-context-bar" class="task-context-bar hidden">
+            <span id="task-context-label" class="task-context-bar__label">Filtered view</span>
+            <button id="task-context-clear" class="link-btn" type="button">Clear filter</button>
           </div>
 
           <div class="field">
