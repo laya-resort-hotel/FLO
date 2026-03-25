@@ -1743,3 +1743,78 @@ button { cursor: pointer; }
     padding-bottom: 2px;
   }
 }
+
+
+/* MOD upload panel lock / stable layout */
+.mod-upload-box input[type="file"],
+.mod-upload-box .input[type="file"] {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.mod-evidence-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.mod-upload-field {
+  padding: 14px;
+  border: 1px solid #e7ece8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfa 100%);
+}
+
+.mod-upload-box {
+  min-height: 104px;
+  align-content: center;
+  justify-items: start;
+  border-style: dashed;
+  border-width: 1.5px;
+}
+
+.mod-upload-box__title {
+  font-size: 15px;
+}
+
+.mod-upload-box__sub {
+  max-width: 28ch;
+}
+
+#mod-media-preview {
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 4px;
+  align-content: start;
+}
+
+@media (min-width: 720px) {
+  .mod-side-stack {
+    position: sticky;
+    top: 82px;
+    gap: 12px;
+  }
+
+  .mod-evidence-card {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 719px) {
+  .mod-upload-box {
+    min-height: 92px;
+  }
+
+  #mod-media-preview {
+    max-height: none;
+    overflow: visible;
+  }
+}
