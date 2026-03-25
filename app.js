@@ -4380,6 +4380,15 @@ function createLog(action, note) {
 }
 
 function setupChipGroup(container, hiddenInput, defaultValue, forceReset = false, onChange = null) {
+  if (!hiddenInput) return;
+  if (!container) {
+    if (forceReset || !hiddenInput.value) {
+      hiddenInput.value = defaultValue;
+    }
+    if (typeof onChange === 'function') onChange(hiddenInput.value);
+    return;
+  }
+
   const chips = Array.from(container.querySelectorAll('.chip'));
   if (forceReset || !hiddenInput.value) {
     hiddenInput.value = defaultValue;

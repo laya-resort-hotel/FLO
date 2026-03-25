@@ -646,24 +646,10 @@
                 </div>
               </div>
 
-              <div class="field">
-                <label class="label">Inspection Area</label>
-                <div class="chip-group chip-group--grid3" id="mod-area-chips">
-                  <button class="chip" type="button" data-value="Lobby">Lobby</button>
-                  <button class="chip" type="button" data-value="Guest Floor">Guest Floor</button>
-                  <button class="chip" type="button" data-value="Public Area">Public Area</button>
-                  <button class="chip" type="button" data-value="Restaurant / Bar">Restaurant / Bar</button>
-                  <button class="chip" type="button" data-value="Back of House">Back of House</button>
-                  <button class="chip" type="button" data-value="Pool / Outdoor">Pool / Outdoor</button>
-                </div>
-                <input id="mod-area" type="hidden" required />
-              </div>
+              <input id="mod-area" type="hidden" value="General" />
+              <input id="mod-location" type="hidden" value="-" />
 
               <div class="filters-grid">
-                <div class="field">
-                  <label class="label" for="mod-location">Checklist Point / Location</label>
-                  <input id="mod-location" class="input" type="text" placeholder="Lobby entrance / Floor 5 corridor / Pool shower" required />
-                </div>
                 <div class="field">
                   <label class="label">Owner Department</label>
                   <div class="chip-group chip-group--grid4" id="mod-department-chips">
