@@ -749,6 +749,42 @@ function getHomeConfig() {
     sections: []
   };
 
+  if (isMOD()) {
+    return {
+      ...base,
+      tasksButtonLabel: 'View All Hotel Tasks',
+      activityTitle: 'Latest Hotel Updates',
+      activityHint: 'Cross-department activity from the whole hotel',
+      activityPreset: 'hotelRecent',
+      sections: [
+        {
+          title: 'Open Hotel Tasks',
+          hint: 'All open work orders across departments',
+          buttonLabel: 'Open All',
+          preset: 'allOpen',
+          emptyTitle: 'No open task',
+          emptyDescription: 'There is no open hotel task right now.'
+        },
+        {
+          title: 'High Risk / Overdue',
+          hint: 'Critical items that may need MOD escalation',
+          buttonLabel: 'Open High Risk',
+          preset: 'hotelUrgentOverdue',
+          emptyTitle: 'No high-risk task',
+          emptyDescription: 'No urgent or overdue task at the moment.'
+        },
+        {
+          title: 'Opened from MOD Reports',
+          hint: 'Follow-up tasks created from MOD inspection findings',
+          buttonLabel: 'Open MOD Follow-up',
+          preset: 'modLinkedTasks',
+          emptyTitle: 'No MOD follow-up yet',
+          emptyDescription: 'No task has been opened from MOD reports yet.'
+        }
+      ]
+    };
+  }
+
   if (isSupervisor()) {
     return {
       ...base,
@@ -955,9 +991,11 @@ function getHomeTasksByPreset(tasks, preset) {
   const teamActiveTask = (task) => deptTask(task) && ['Accepted', 'In Progress'].includes(task.status);
   const urgentTask = (task) => ['Urgent', 'High'].includes(task.priority) || isTaskOverdue(task);
   const vipTask = (task) => /vip|amenity|welcome/i.test(`${task.subject} ${task.detail} ${task.location}`);
+  const modLinkedTask = (task) => task.sourceType === 'MOD' || /^MOD-/i.test(task.sourceReference || '');
 
   const presets = {
     all: tasks,
+    allOpen: tasks.filter((task) => activeTask(task)),
     deptOnly: tasks.filter((task) => deptTask(task)),
     deptOpen: tasks.filter((task) => deptTask(task) && activeTask(task)),
     deptNew: tasks.filter((task) => deptTask(task) && task.status === 'New'),
@@ -967,13 +1005,16 @@ function getHomeTasksByPreset(tasks, preset) {
     supervisorTeamActive: tasks.filter((task) => teamActiveTask(task)),
     supervisorAssignedOrOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && (assignedByMe(task) || urgentTask(task))),
     deptUrgentOverdue: tasks.filter((task) => deptTask(task) && activeTask(task) && urgentTask(task)),
+    hotelUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task)),
+    modLinkedTasks: tasks.filter((task) => activeTask(task) && modLinkedTask(task)),
     foFollowUp: tasks.filter((task) => activeTask(task) && (task.openedByDepartment === 'FO' || mine(task) || task.department === 'FO')),
     foUrgentOverdue: tasks.filter((task) => activeTask(task) && urgentTask(task) && (task.openedByDepartment === 'FO' || task.department === 'FO')),
     engUrgentRepairs: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (urgentTask(task) || task.category === 'Repair')),
     engNewOrOverdue: tasks.filter((task) => task.department === 'Engineering' && activeTask(task) && (task.status === 'New' || isTaskOverdue(task))),
     fbVip: tasks.filter((task) => task.department === 'FB' && activeTask(task) && vipTask(task)),
     fbMyInProgressOrOverdue: tasks.filter((task) => task.department === 'FB' && activeTask(task) && (mine(task) || isTaskOverdue(task) || task.status === 'In Progress')),
-    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department)
+    departmentRecent: tasks.filter((task) => deptTask(task) || task.openedByDepartment === department),
+    hotelRecent: tasks
   };
 
   return presets[preset] || presets.all;
@@ -985,7 +1026,7 @@ function getHomeActivityEntries(tasks, preset) {
 }
 
 function openDepartmentTasksFromHome() {
-  openTaskPreset('deptOnly');
+  openTaskPreset(isMOD() ? 'all' : 'deptOnly');
 }
 
 function openTaskPreset(preset) {
@@ -1021,6 +1062,8 @@ function getTaskContextFilteredTasks(tasks) {
 function getTaskContextLabel() {
   const labels = {
     all: '',
+    all: 'All hotel tasks',
+    allOpen: 'All open hotel tasks',
     deptOnly: `${state.currentUser?.department || 'Department'} tasks`,
     deptOpen: `${state.currentUser?.department || 'Department'} open tasks`,
     deptNew: `${state.currentUser?.department || 'Department'} new tasks`,
@@ -1030,6 +1073,8 @@ function getTaskContextLabel() {
     supervisorTeamActive: `${state.currentUser?.department || 'Department'} team active`,
     supervisorAssignedOrOverdue: 'Assigned by me / overdue',
     deptUrgentOverdue: `${state.currentUser?.department || 'Department'} urgent / overdue`,
+    hotelUrgentOverdue: 'Hotel urgent / overdue',
+    modLinkedTasks: 'Tasks opened from MOD reports',
     foFollowUp: 'FO need follow-up',
     foUrgentOverdue: 'FO urgent / overdue',
     engUrgentRepairs: 'Engineering urgent repairs',
@@ -3720,13 +3765,11 @@ function canSeeAllHotelTasks() {
 
 function getDefaultLandingPage() {
   if (isManager()) return 'dashboard';
-  if (isMOD()) return 'mod';
   return 'home';
 }
 
 function getHomeNavPage() {
   if (isManager()) return 'dashboard';
-  if (isMOD()) return 'mod';
   return 'home';
 }
 
