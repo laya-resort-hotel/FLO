@@ -1,4 +1,4 @@
-const STORAGE_KEYS = {
+﻿const STORAGE_KEYS = {
   currentUser: 'lsh_current_user',
   tasks: 'lsh_tasks'
 };
@@ -468,7 +468,7 @@ function setActiveNav(pageName) {
 
 function updateTopbar(pageName) {
   const titleMap = {
-    home: [`Good Morning, ${state.currentUser.name}`, `${state.currentUser.department} • ${state.currentUser.role}`],
+    home: [`Good Morning, ${state.currentUser.name}`, `${state.currentUser.department} / ${state.currentUser.role}`],
     dashboard: ['Manager Dashboard', 'Hotel operations overview'],
     create: ['Create Task', 'Open a new request'],
     tasks: ['Tasks', 'Filter and track work orders'],
@@ -532,7 +532,7 @@ function renderRecentActivity(tasks) {
   els.recentActivity.innerHTML = allLogs.map((entry) => `
     <div class="activity-row">
       <div class="activity-row__text">
-        <strong>${escapeHtml(entry.task.ticketNo)}</strong> · ${escapeHtml(entry.action)} · ${escapeHtml(entry.note || entry.task.subject)}
+        <strong>${escapeHtml(entry.task.ticketNo)}</strong> / ${escapeHtml(entry.action)} / ${escapeHtml(entry.note || entry.task.subject)}
       </div>
       <div class="activity-row__time">${timeAgo(entry.createdAt)}</div>
     </div>
@@ -557,7 +557,7 @@ function renderDashboardPage() {
     return `
       <div class="overview-row">
         <span class="overview-row__label">${escapeHtml(department)}</span>
-        <span class="overview-row__value">Open ${open} · Done ${doneToday}</span>
+        <span class="overview-row__value">Open ${open} / Done ${doneToday}</span>
       </div>
     `;
   }).join('');
@@ -575,7 +575,7 @@ function renderDashboardPage() {
   els.dashboardActivity.innerHTML = latestLogs.length
     ? latestLogs.map((entry) => `
         <div class="activity-row">
-          <div class="activity-row__text"><strong>${escapeHtml(entry.task.ticketNo)}</strong> · ${escapeHtml(entry.action)} · ${escapeHtml(entry.note || '')}</div>
+          <div class="activity-row__text"><strong>${escapeHtml(entry.task.ticketNo)}</strong> / ${escapeHtml(entry.action)} / ${escapeHtml(entry.note || '')}</div>
           <div class="activity-row__time">${timeAgo(entry.createdAt)}</div>
         </div>
       `).join('')
@@ -592,11 +592,27 @@ function renderTaskList() {
 function renderTaskDetail() {
   const task = getTaskById(state.currentTaskId);
   if (!task) {
+    els.detailLocation.textContent = '-';
+    els.detailSubject.textContent = 'Task not found';
+    els.detailTicket.textContent = '-';
+    els.detailDescription.textContent = 'This task may have been removed.';
+    els.detailDepartment.textContent = '-';
+    els.detailCategory.textContent = '-';
+    els.detailOpenedBy.textContent = '-';
+    els.detailAssignedTo.textContent = '-';
+    els.detailCreatedAt.textContent = '-';
+    els.detailUpdatedAt.textContent = '-';
+    els.detailPriorityBadge.className = 'badge badge-priority-low';
+    els.detailPriorityBadge.textContent = '-';
+    els.detailStatusBadge.className = 'badge badge-status-new';
+    els.detailStatusBadge.textContent = '-';
+    els.detailActions.innerHTML = '<div class="helper-text">No action available.</div>';
+    els.detailNoteInput.value = '';
     els.detailTimeline.innerHTML = emptyStateHTML('Task not found', 'This task may have been removed.');
     return;
   }
 
-  els.detailLocation.textContent = `${task.location} • ${task.department}`;
+  els.detailLocation.textContent = `${task.location} / ${task.department}`;
   els.detailSubject.textContent = task.subject;
   els.detailTicket.textContent = task.ticketNo;
   els.detailDescription.textContent = task.detail || 'No detail provided.';
@@ -655,7 +671,7 @@ function renderReportsPage() {
   els.reportOverdue.textContent = overdue;
   els.reportRangeLabel.textContent = buildReportRangeLabel();
   if (els.reportViewModeLabel) {
-    els.reportViewModeLabel.textContent = `${getReportViewModeLabel()} view • created tasks`;
+    els.reportViewModeLabel.textContent = `${getReportViewModeLabel()} view - open vs closed`;
   }
 
   const deptStats = DEPARTMENTS.map((department) => {
@@ -696,7 +712,7 @@ function renderReportsPage() {
   els.reportDepartmentSummary.innerHTML = deptStats.map((item) => metricRowHTML({
     label: item.department,
     value: `${item.count} task${item.count === 1 ? '' : 's'}`,
-    meta: `${item.closed} closed · ${item.overdue} overdue`,
+    meta: `${item.closed} closed / ${item.overdue} overdue`,
     share: item.share,
     tone: 'department'
   })).join('');
@@ -713,7 +729,7 @@ function renderReportsPage() {
     els.reportPrioritySummary.innerHTML = priorityStats.map((item) => metricRowHTML({
       label: item.priority,
       value: `${item.count} task${item.count === 1 ? '' : 's'}`,
-      meta: `${item.active} active · ${item.share}% of selected workload`,
+      meta: `${item.active} active / ${item.share}% of selected workload`,
       share: item.share,
       tone: 'priority'
     })).join('');
@@ -766,68 +782,173 @@ function getWeekStart(date) {
   return copy;
 }
 
+function getTrendBucketMeta(date, viewMode) {
+  const source = new Date(date);
+  let bucketDate;
+
+  if (viewMode === 'weekly') {
+    bucketDate = getWeekStart(source);
+  } else if (viewMode === 'monthly') {
+    bucketDate = new Date(source.getFullYear(), source.getMonth(), 1);
+    bucketDate.setHours(0, 0, 0, 0);
+  } else {
+    bucketDate = new Date(source.getFullYear(), source.getMonth(), source.getDate());
+    bucketDate.setHours(0, 0, 0, 0);
+  }
+
+  const key = viewMode === 'monthly'
+    ? `${bucketDate.getFullYear()}-${String(bucketDate.getMonth() + 1).padStart(2, '0')}`
+    : formatDateInput(bucketDate);
+
+  const label = viewMode === 'weekly'
+    ? `${String(bucketDate.getDate()).padStart(2, '0')} ${bucketDate.toLocaleDateString('en-GB', { month: 'short' })}`
+    : viewMode === 'monthly'
+      ? bucketDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+      : bucketDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+
+  return {
+    key,
+    label,
+    sortValue: bucketDate.getTime(),
+    bucketDate
+  };
+}
+
+function getNextTrendBucketDate(date, viewMode) {
+  const next = new Date(date);
+  if (viewMode === 'weekly') next.setDate(next.getDate() + 7);
+  else if (viewMode === 'monthly') next.setMonth(next.getMonth() + 1);
+  else next.setDate(next.getDate() + 1);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function getTrendRangeBounds(tasks, viewMode) {
+  const parseBound = (value, end = false) => {
+    if (!value) return null;
+    const date = new Date(`${value}T00:00:00`);
+    if (end) date.setHours(23, 59, 59, 999);
+    return date;
+  };
+
+  let start = parseBound(els.reportStartDate.value, false);
+  let end = parseBound(els.reportEndDate.value, true);
+
+  const allDates = [];
+  tasks.forEach((task) => {
+    if (task.createdAt) allDates.push(new Date(task.createdAt));
+    if (task.closedAt) allDates.push(new Date(task.closedAt));
+  });
+
+  if (!start && allDates.length) start = new Date(Math.min(...allDates.map((item) => item.getTime())));
+  if (!end && allDates.length) end = new Date(Math.max(...allDates.map((item) => item.getTime())));
+  if (!start || !end) return null;
+
+  return {
+    start: getTrendBucketMeta(start, viewMode).bucketDate,
+    end: getTrendBucketMeta(end, viewMode).bucketDate
+  };
+}
+
 function getTrendStats(tasks, viewMode) {
   const grouped = new Map();
-  tasks.forEach((task) => {
-    const date = new Date(task.createdAt || task.updatedAt);
-    let key;
-    let label;
-    let sortValue;
-
-    if (viewMode === 'weekly') {
-      const start = getWeekStart(date);
-      key = formatDateInput(start);
-      label = `${String(start.getDate()).padStart(2, '0')} ${start.toLocaleDateString('en-GB', { month: 'short' })}`;
-      sortValue = start.getTime();
-    } else if (viewMode === 'monthly') {
-      const start = new Date(date.getFullYear(), date.getMonth(), 1);
-      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      label = start.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
-      sortValue = start.getTime();
-    } else {
-      key = formatDateInput(date);
-      label = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-      sortValue = new Date(`${key}T00:00:00`).getTime();
+  const ensureBucket = (dateValue) => {
+    const meta = getTrendBucketMeta(dateValue, viewMode);
+    if (!grouped.has(meta.key)) {
+      grouped.set(meta.key, {
+        key: meta.key,
+        label: meta.label,
+        sortValue: meta.sortValue,
+        open: 0,
+        closed: 0
+      });
     }
+    return grouped.get(meta.key);
+  };
 
-    if (!grouped.has(key)) grouped.set(key, { key, label, sortValue, count: 0 });
-    grouped.get(key).count += 1;
+  const bounds = getTrendRangeBounds(tasks, viewMode);
+  if (bounds) {
+    let cursor = new Date(bounds.start);
+    let safety = 0;
+    while (cursor.getTime() <= bounds.end.getTime() && safety < 180) {
+      ensureBucket(cursor);
+      cursor = getNextTrendBucketDate(cursor, viewMode);
+      safety += 1;
+    }
+  }
+
+  tasks.forEach((task) => {
+    const openBucket = ensureBucket(task.createdAt || task.updatedAt);
+    openBucket.open += 1;
+
+    if (task.status === 'Closed' && task.closedAt) {
+      const closedBucket = ensureBucket(task.closedAt);
+      closedBucket.closed += 1;
+    }
   });
 
   const maxBuckets = { daily: 8, weekly: 10, monthly: 12 }[viewMode] || 8;
-  return Array.from(grouped.values()).sort((a, b) => a.sortValue - b.sortValue).slice(-maxBuckets);
+  return Array.from(grouped.values())
+    .sort((a, b) => a.sortValue - b.sortValue)
+    .slice(-maxBuckets);
 }
 
 function renderTrendChart(stats) {
-  const width = 520;
-  const height = 250;
-  const chartX = 28;
-  const chartY = 26;
-  const chartW = width - 56;
-  const chartH = 166;
-  const maxValue = Math.max(...stats.map((item) => item.count), 1);
-  const gap = 12;
-  const barWidth = Math.max(24, Math.min(56, (chartW - (gap * Math.max(stats.length - 1, 0))) / Math.max(stats.length, 1)));
-  const totalBarsWidth = (stats.length * barWidth) + (Math.max(stats.length - 1, 0) * gap);
-  const startX = chartX + ((chartW - totalBarsWidth) / 2);
-
-  const bars = stats.map((item, index) => {
-    const x = startX + index * (barWidth + gap);
-    const barHeight = item.count ? Math.max(14, (item.count / maxValue) * (chartH - 22)) : 0;
-    const y = chartY + chartH - barHeight;
+  const width = 560;
+  const height = 300;
+  const chartX = 44;
+  const chartY = 72;
+  const chartW = width - 88;
+  const chartH = 160;
+  const maxValue = Math.max(...stats.map((item) => Math.max(item.open, item.closed)), 1);
+  const groupGap = 18;
+  const groupWidth = Math.max(34, Math.min(62, (chartW - (groupGap * Math.max(stats.length - 1, 0))) / Math.max(stats.length, 1)));
+  const barGap = 8;
+  const barWidth = Math.max(12, (groupWidth - barGap) / 2);
+  const totalGroupsWidth = (stats.length * groupWidth) + (Math.max(stats.length - 1, 0) * groupGap);
+  const startX = chartX + ((chartW - totalGroupsWidth) / 2);
+  const openTotal = stats.reduce((sum, item) => sum + item.open, 0);
+  const closedTotal = stats.reduce((sum, item) => sum + item.closed, 0);
+  const gridLines = [0.25, 0.5, 0.75, 1].map((ratio) => {
+    const y = chartY + chartH - (chartH * ratio);
+    const value = Math.round(maxValue * ratio);
     return `
       <g>
-        <rect x="${x}" y="${chartY + 10}" width="${barWidth}" height="${chartH - 10}" rx="14" fill="#f3f5f3"></rect>
-        <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="14" fill="#1f4d3a"></rect>
-        <text x="${x + barWidth / 2}" y="${y - 8}" text-anchor="middle" class="bar-value">${item.count}</text>
-        <text x="${x + barWidth / 2}" y="${chartY + chartH + 20}" text-anchor="middle" class="axis-label">${escapeHtml(item.label)}</text>
+        <line x1="${chartX}" y1="${y}" x2="${chartX + chartW}" y2="${y}" stroke="#e7ece7" stroke-width="1"></line>
+        <text x="${chartX - 8}" y="${y + 4}" text-anchor="end" class="axis-label">${value}</text>
+      </g>`;
+  }).join('');
+
+  const groups = stats.map((item, index) => {
+    const groupX = startX + index * (groupWidth + groupGap);
+    const openHeight = item.open ? Math.max(6, (item.open / maxValue) * chartH) : 0;
+    const closedHeight = item.closed ? Math.max(6, (item.closed / maxValue) * chartH) : 0;
+    const openY = chartY + chartH - openHeight;
+    const closedY = chartY + chartH - closedHeight;
+
+    return `
+      <g>
+        <rect x="${groupX}" y="${openY}" width="${barWidth}" height="${openHeight}" rx="10" fill="#3178c6"></rect>
+        <rect x="${groupX + barWidth + barGap}" y="${closedY}" width="${barWidth}" height="${closedHeight}" rx="10" fill="#2f8f5b"></rect>
+        ${item.open ? `<text x="${groupX + (barWidth / 2)}" y="${openY - 8}" text-anchor="middle" class="bar-value">${item.open}</text>` : ''}
+        ${item.closed ? `<text x="${groupX + barWidth + barGap + (barWidth / 2)}" y="${closedY - 8}" text-anchor="middle" class="bar-value">${item.closed}</text>` : ''}
+        <text x="${groupX + (groupWidth / 2)}" y="${chartY + chartH + 22}" text-anchor="middle" class="axis-label">${escapeHtml(item.label)}</text>
       </g>`;
   }).join('');
 
   return `
-    <svg class="report-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(getReportViewModeLabel())} workload trend chart">
-      <text x="28" y="16" font-size="12" font-weight="700" fill="#7c867f">${escapeHtml(getReportViewModeLabel())} created volume</text>
-      ${bars}
+    <svg class="report-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(getReportViewModeLabel())} open versus closed trend chart">
+      <text x="44" y="20" font-size="12" font-weight="700" fill="#7c867f">${escapeHtml(getReportViewModeLabel())} open vs closed trend</text>
+      <g>
+        <circle cx="44" cy="42" r="6" fill="#3178c6"></circle>
+        <text x="56" y="46" class="trend-legend-label">Open</text>
+        <circle cx="108" cy="42" r="6" fill="#2f8f5b"></circle>
+        <text x="120" y="46" class="trend-legend-label">Closed</text>
+      </g>
+      <text x="516" y="22" text-anchor="end" font-size="12" font-weight="800" fill="#1f2a23">${openTotal} open / ${closedTotal} closed</text>
+      ${gridLines}
+      <line x1="${chartX}" y1="${chartY + chartH}" x2="${chartX + chartW}" y2="${chartY + chartH}" stroke="#d9dfd6" stroke-width="1.5"></line>
+      ${groups}
     </svg>`;
 }
 
@@ -848,7 +969,7 @@ function renderPriorityChart(stats) {
     return `
       <g>
         <text x="${labelX}" y="${y + 18}" font-size="13" font-weight="700" fill="#1f2a23">${escapeHtml(item.priority)}</text>
-        <text x="${labelX}" y="${y + 35}" font-size="11" font-weight="600" fill="#7c867f">${item.active} active • ${item.share}%</text>
+        <text x="${labelX}" y="${y + 35}" font-size="11" font-weight="600" fill="#7c867f">${item.active} active / ${item.share}%</text>
         <rect x="${barX}" y="${y + 6}" width="${barMaxWidth}" height="14" rx="7" fill="#edf1ee"></rect>
         <rect x="${barX}" y="${y + 6}" width="${barWidth}" height="14" rx="7" fill="${fill}"></rect>
         <text x="${countX}" y="${y + 18}" text-anchor="end" font-size="14" font-weight="800" fill="#1f2a23">${item.count}</text>
@@ -885,7 +1006,7 @@ function renderDepartmentChart(stats) {
         <rect x="${barX}" y="${y + 6}" width="${barMaxWidth}" height="14" rx="7" fill="#edf1ee"></rect>
         <rect x="${barX}" y="${y + 6}" width="${barWidth}" height="14" rx="7" fill="${fill}"></rect>
         <text x="${countX}" y="${y + 18}" text-anchor="end" font-size="14" font-weight="800" fill="#1f2a23">${item.count}</text>
-        <text x="${countX}" y="${y + 35}" text-anchor="end" font-size="11" font-weight="600" fill="#7c867f">${item.closed} closed · ${item.overdue} overdue</text>
+        <text x="${countX}" y="${y + 35}" text-anchor="end" font-size="11" font-weight="600" fill="#7c867f">${item.closed} closed / ${item.overdue} overdue</text>
       </g>`;
   }).join('');
 
@@ -1056,7 +1177,6 @@ function saveDetailNote() {
 function runTaskTransition(action, taskId) {
   const task = getTaskById(taskId);
   if (!task) return;
-
   const transitions = {
     accept: { status: 'Accepted', note: 'Task accepted.' },
     start: { status: 'In Progress', note: 'Work started.' },
@@ -1064,14 +1184,15 @@ function runTaskTransition(action, taskId) {
     close: { status: 'Closed', note: 'Task closed.' },
     reopen: { status: 'In Progress', note: 'Task reopened.' }
   };
-
   if (!transitions[action]) return;
-
+  if (!canTransitionTask(task, action)) {
+    alert('This action is not allowed for the current user or task status.');
+    return;
+  }
   updateTask(taskId, (draft) => {
     const now = new Date().toISOString();
     draft.status = transitions[action].status;
     draft.updatedAt = now;
-
     if (action === 'accept') {
       draft.assignedToName = state.currentUser.name;
       draft.assignedAt = now;
@@ -1079,12 +1200,13 @@ function runTaskTransition(action, taskId) {
     if (action === 'start') draft.startedAt = now;
     if (action === 'done') draft.doneAt = now;
     if (action === 'close') draft.closedAt = now;
-    if (action === 'reopen') draft.closedAt = '';
-
+    if (action === 'reopen') {
+      draft.closedAt = '';
+      draft.doneAt = '';
+    }
     draft.logs.unshift(createLog(capitalize(action), transitions[action].note));
     return draft;
   });
-
   renderApp();
   if (state.currentView === 'detail') showPage('detail');
 }
@@ -1116,6 +1238,10 @@ function getDetailActions(task) {
     actions.push({ value: 'reopen', label: 'Reopen Task', primary: false, full: true });
   }
   return actions;
+}
+
+function canTransitionTask(task, action) {
+  return getDetailActions(task).some((item) => item.value === action);
 }
 
 function getTaskListResults() {
@@ -1273,6 +1399,8 @@ function exportReportPdf() {
     };
   });
 
+  const trendStatsDetailed = getTrendStats(rows, state.reportViewMode);
+
   doc.setFillColor(24, 55, 43);
   doc.rect(0, 0, pageWidth, 92, 'F');
   doc.setTextColor(255, 255, 255);
@@ -1281,7 +1409,7 @@ function exportReportPdf() {
   doc.text('Laya Service Hub Performance Report', margin, 44);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
-  doc.text(`Excom-ready export • ${buildReportRangeLabel()}`, margin, 66);
+  doc.text(`Excom-ready export - ${buildReportRangeLabel()}`, margin, 66);
   doc.text(`Generated ${formatDateTime(new Date().toISOString())}`, margin, 82);
 
   drawPdfSummaryBox(doc, margin, summaryTop, summaryWidth, summaryHeight, 'Total Tasks', String(reportMeta.total), 'Selected workload');
@@ -1300,7 +1428,7 @@ function exportReportPdf() {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   execLines.forEach((line) => {
-    const wrapped = doc.splitTextToSize(`• ${line}`, pageWidth - (margin * 2));
+    const wrapped = doc.splitTextToSize(`- ${line}`, pageWidth - (margin * 2));
     doc.text(wrapped, margin, cursorY);
     cursorY += (wrapped.length * 14);
   });
@@ -1312,7 +1440,9 @@ function exportReportPdf() {
   const chartWidth = (pageWidth - (margin * 2) - chartGap) / 2;
   drawPdfBarChart(doc, margin, chartTop, chartWidth, chartHeight, deptStatsDetailed);
   drawPdfDonutChart(doc, margin + chartWidth + chartGap, chartTop, chartWidth, chartHeight, statusStats, reportMeta.total, closureRate);
-  cursorY = chartTop + chartHeight + 24;
+  const trendTop = chartTop + chartHeight + 20;
+  drawPdfTrendChart(doc, margin, trendTop, pageWidth - (margin * 2), 196, trendStatsDetailed);
+  cursorY = trendTop + 196 + 24;
 
   const deptStatsTable = deptStatsDetailed.map((item) => [item.department, String(item.count), `${item.closed}`, `${item.overdue}`]);
   doc.autoTable({
@@ -1369,7 +1499,7 @@ function exportReportPdf() {
     didDrawPage: ({ pageNumber }) => {
       doc.setFontSize(9);
       doc.setTextColor(124, 134, 127);
-      doc.text(`Laya Service Hub • Page ${pageNumber}`, margin, pageHeight - 18);
+      doc.text(`Laya Service Hub / Page ${pageNumber}`, margin, pageHeight - 18);
     }
   });
 
@@ -1380,7 +1510,7 @@ function buildReportRangeLabel() {
   let range = 'All dates';
   if (els.reportStartDate.value && els.reportEndDate.value) range = `${els.reportStartDate.value} to ${els.reportEndDate.value}`;
   else if (els.reportStartDate.value || els.reportEndDate.value) range = els.reportStartDate.value || els.reportEndDate.value;
-  return `${range} • ${getReportViewModeLabel()} view`;
+  return `${range} - ${getReportViewModeLabel()} view`;
 }
 
 function drawPdfBarChart(doc, x, y, width, height, stats) {
@@ -1394,7 +1524,7 @@ function drawPdfBarChart(doc, x, y, width, height, stats) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(124, 134, 127);
-  doc.text('Bar chart • workload by team', x + 14, y + 32);
+  doc.text('Bar chart - workload by team', x + 14, y + 32);
 
   const chartX = x + 92;
   const chartY = y + 52;
@@ -1437,7 +1567,7 @@ function drawPdfDonutChart(doc, x, y, width, height, stats, total, closureRate) 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(124, 134, 127);
-  doc.text('Donut chart • current task mix', x + 14, y + 32);
+  doc.text('Donut chart - current task mix', x + 14, y + 32);
 
   const centerX = x + 74;
   const centerY = y + 102;
@@ -1479,8 +1609,75 @@ function drawPdfDonutChart(doc, x, y, width, height, stats, total, closureRate) 
     doc.text(item.status, x + 166, legendY);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(124, 134, 127);
-    doc.text(`${item.count} • ${item.share}%`, x + width - 16, legendY, { align: 'right' });
+    doc.text(`${item.count} / ${item.share}%`, x + width - 16, legendY, { align: 'right' });
     legendY += 21;
+  });
+}
+
+function drawPdfTrendChart(doc, x, y, width, height, stats) {
+  doc.setDrawColor(222, 229, 223);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(x, y, width, height, 14, 14, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(31, 42, 35);
+  doc.text('Open vs Closed Trend', x + 14, y + 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(124, 134, 127);
+  doc.text(`${getReportViewModeLabel()} view - opened vs closed tickets`, x + 14, y + 32);
+
+  if (!stats.length) {
+    doc.text('No trend data in current filter.', x + 14, y + 58);
+    return;
+  }
+
+  const legendY = y + 48;
+  doc.setFillColor(49, 120, 198);
+  doc.circle(x + 18, legendY, 4, 'F');
+  doc.setTextColor(31, 42, 35);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Open', x + 28, legendY + 3);
+  doc.setFillColor(47, 143, 91);
+  doc.circle(x + 82, legendY, 4, 'F');
+  doc.text('Closed', x + 92, legendY + 3);
+
+  const chartX = x + 34;
+  const chartY = y + 74;
+  const chartW = width - 68;
+  const chartH = 86;
+  const maxValue = Math.max(...stats.map((item) => Math.max(item.open, item.closed)), 1);
+  const groupGap = 10;
+  const groupWidth = Math.max(22, Math.min(42, (chartW - (groupGap * Math.max(stats.length - 1, 0))) / Math.max(stats.length, 1)));
+  const barGap = 4;
+  const barWidth = Math.max(8, (groupWidth - barGap) / 2);
+  const totalGroupsWidth = (stats.length * groupWidth) + (Math.max(stats.length - 1, 0) * groupGap);
+  const startX = chartX + ((chartW - totalGroupsWidth) / 2);
+
+  doc.setDrawColor(231, 236, 231);
+  [0.25, 0.5, 0.75, 1].forEach((ratio) => {
+    const lineY = chartY + chartH - (chartH * ratio);
+    doc.line(chartX, lineY, chartX + chartW, lineY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(124, 134, 127);
+    doc.text(String(Math.round(maxValue * ratio)), chartX - 6, lineY + 3, { align: 'right' });
+  });
+
+  stats.forEach((item, index) => {
+    const groupX = startX + index * (groupWidth + groupGap);
+    const openH = item.open ? Math.max(4, (item.open / maxValue) * chartH) : 0;
+    const closedH = item.closed ? Math.max(4, (item.closed / maxValue) * chartH) : 0;
+
+    doc.setFillColor(49, 120, 198);
+    if (openH > 0) doc.roundedRect(groupX, chartY + chartH - openH, barWidth, openH, 3, 3, 'F');
+    doc.setFillColor(47, 143, 91);
+    if (closedH > 0) doc.roundedRect(groupX + barWidth + barGap, chartY + chartH - closedH, barWidth, closedH, 3, 3, 'F');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(124, 134, 127);
+    doc.text(item.label, groupX + (groupWidth / 2), chartY + chartH + 12, { align: 'center' });
   });
 }
 
@@ -1621,7 +1818,7 @@ function taskCardHTML(task, options = {}) {
         <span class="task-card__ticket">${escapeHtml(task.ticketNo)}</span>
         <span class="task-card__time">${formatClock(task.updatedAt || task.createdAt)}</span>
       </div>
-      <div class="task-card__meta">${escapeHtml(task.location)} • ${escapeHtml(task.department)}</div>
+      <div class="task-card__meta">${escapeHtml(task.location)} / ${escapeHtml(task.department)}</div>
       <h3 class="task-card__title">${escapeHtml(task.subject)}</h3>
       <div class="task-card__badges">
         <span class="badge ${priorityBadgeClass(task.priority)}">${escapeHtml(task.priority)}</span>
@@ -1659,7 +1856,7 @@ function timelineItemHTML(log) {
     <div class="timeline-item">
       <div class="timeline-item__dot"></div>
       <div class="timeline-item__content">
-        <div class="timeline-item__title">${escapeHtml(log.action)} · ${escapeHtml(log.byName || '-')}</div>
+        <div class="timeline-item__title">${escapeHtml(log.action)} / ${escapeHtml(log.byName || '-')}</div>
         <div class="timeline-item__note">${escapeHtml(log.note || '-')}</div>
         <div class="timeline-item__time">${formatDateTime(log.createdAt)}</div>
       </div>
@@ -1725,7 +1922,10 @@ function formatDateTime(dateString) {
 }
 
 function formatDateInput(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatFileDate(date) {
@@ -1783,7 +1983,7 @@ function matchesSearch(task, search) {
 }
 
 function taskWithinRange(task, startDate, endDate) {
-  const taskDate = new Date(task.updatedAt || task.createdAt);
+  const taskDate = getTaskRangeDate(task);
   if (startDate) {
     const start = new Date(`${startDate}T00:00:00`);
     if (taskDate < start) return false;
@@ -1793,6 +1993,11 @@ function taskWithinRange(task, startDate, endDate) {
     if (taskDate > end) return false;
   }
   return true;
+}
+
+function getTaskRangeDate(task) {
+  if (task.closedAt) return new Date(task.closedAt);
+  return new Date(task.updatedAt || task.createdAt);
 }
 
 function isManager() {
@@ -1837,3 +2042,9 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+
+
+
+
+

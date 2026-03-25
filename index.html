@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -39,7 +39,7 @@
         </section>
 
         <div class="login-footer">
-          <span>v1.6.0 Prototype</span>
+          <span>v1.7.0 Prototype</span>
           <span>Local Demo</span>
         </div>
 
@@ -59,14 +59,14 @@
     <section id="screen-app" class="screen">
       <header class="topbar">
         <div class="topbar__main">
-          <button id="back-btn" class="icon-btn hidden" type="button" aria-label="Go back">←</button>
+          <button id="back-btn" class="icon-btn hidden" type="button" aria-label="Go back">&larr;</button>
           <div>
             <h1 id="topbar-title" class="topbar__title">Good Morning</h1>
             <p id="topbar-subtitle" class="topbar__subtitle">Department</p>
           </div>
         </div>
         <div class="topbar__actions">
-          <button id="logout-btn" class="icon-btn" type="button" aria-label="Logout">⎋</button>
+          <button id="logout-btn" class="icon-btn" type="button" aria-label="Logout">&#x23FB;</button>
         </div>
       </header>
 
@@ -193,7 +193,7 @@
               <div>
                 <p id="detail-ticket" class="task-card__ticket">LSH-0000</p>
                 <h2 id="detail-subject" class="task-hero__title">Task Subject</h2>
-                <p id="detail-location" class="task-hero__meta">Location • Department</p>
+                <p id="detail-location" class="task-hero__meta">Location / Department</p>
               </div>
             </div>
             <div class="task-hero__badges">
@@ -305,7 +305,7 @@
                   <button class="btn btn-secondary" type="button">Take Photo</button>
                   <button class="btn btn-secondary" type="button">Upload File</button>
                 </div>
-                <p class="helper-text">Prototype only — photo upload UI placeholder.</p>
+                <p class="helper-text">Prototype only - photo upload UI placeholder.</p>
               </div>
             </section>
 
@@ -464,7 +464,7 @@
               </div>
             </div>
 
-            <p class="helper-text">PDF export now generates a real PDF file in browser. CSV remains available for raw data analysis.</p>
+            <p class="helper-text">PDF export generates a real PDF in browser. Reports now compare Open vs Closed trend by Daily / Weekly / Monthly view.</p>
           </section>
 
           <section class="summary-grid summary-grid--dashboard report-kpi-grid">
@@ -495,7 +495,7 @@
               <div class="section__header">
                 <div>
                   <h2 class="section__title">Department Volume</h2>
-                  <span class="section__hint">Bar chart • workload by team</span>
+                  <span class="section__hint">Bar chart - workload by team</span>
                 </div>
               </div>
               <div id="report-department-chart" class="report-chart report-chart--bar"></div>
@@ -504,7 +504,7 @@
               <div class="section__header">
                 <div>
                   <h2 class="section__title">Status Distribution</h2>
-                  <span class="section__hint">Donut chart • current task mix</span>
+                  <span class="section__hint">Donut chart - current task mix</span>
                 </div>
               </div>
               <div class="report-donut-layout">
@@ -518,8 +518,8 @@
             <div class="card report-panel report-chart-panel">
               <div class="section__header">
                 <div>
-                  <h2 class="section__title">Workload Trend</h2>
-                  <span id="report-view-mode-label" class="section__hint">Daily view • created tasks</span>
+                  <h2 class="section__title">Open vs Closed Trend</h2>
+                  <span id="report-view-mode-label" class="section__hint">Daily view - open vs closed</span>
                 </div>
               </div>
               <div id="report-trend-chart" class="report-chart report-chart--trend"></div>
@@ -574,23 +574,23 @@
 
       <nav id="bottom-nav" class="bottom-nav bottom-nav--count-4">
         <button id="nav-home" class="bottom-nav__item is-active" type="button">
-          <span class="bottom-nav__icon">⌂</span>
+          <span class="bottom-nav__icon">&#x2302;</span>
           <span id="nav-home-label">Home</span>
         </button>
         <button id="nav-tasks" class="bottom-nav__item" type="button">
-          <span class="bottom-nav__icon">☰</span>
+          <span class="bottom-nav__icon">&#x2630;</span>
           <span>Tasks</span>
         </button>
         <button id="nav-create" class="bottom-nav__item" type="button">
-          <span class="bottom-nav__icon">＋</span>
+          <span class="bottom-nav__icon">+</span>
           <span>Create</span>
         </button>
         <button id="nav-history" class="bottom-nav__item" type="button">
-          <span class="bottom-nav__icon">⏱</span>
+          <span class="bottom-nav__icon">&#x23F1;</span>
           <span id="nav-history-label">History</span>
         </button>
         <button id="nav-reports" class="bottom-nav__item hidden" type="button">
-          <span class="bottom-nav__icon">▣</span>
+          <span class="bottom-nav__icon">&#x25A3;</span>
           <span>Reports</span>
         </button>
       </nav>
@@ -602,3 +602,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+

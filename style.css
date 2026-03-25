@@ -831,3 +831,9 @@ button { cursor: pointer; }
     grid-template-columns: minmax(220px, 0.95fr) minmax(0, 1.05fr);
   }
 }
+
+.report-chart-svg .trend-legend-label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
