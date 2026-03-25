@@ -39,7 +39,7 @@
         </section>
 
         <div class="login-footer">
-          <span>v1.10.0 Supervisor Task Board</span>
+          <span>v1.12.0 MOD Checklist</span>
           <span>Local Demo</span>
         </div>
 
@@ -52,6 +52,7 @@
             <li><strong>ENG Supervisor:</strong> 33001 / 1234</li>
             <li><strong>FB Supervisor:</strong> 44001 / 1234</li>
             <li><strong>FO Staff:</strong> 12001 / 1234</li>
+            <li><strong>MOD:</strong> 99001 / 1234</li>
             <li><strong>HK Staff:</strong> 22018 / 1234</li>
             <li><strong>ENG Staff:</strong> 33007 / 1234</li>
             <li><strong>FB Staff:</strong> 44005 / 1234</li>
@@ -313,6 +314,7 @@
               <div><dt>Opened by</dt><dd id="detail-opened-by">-</dd></div>
               <div><dt>Assigned to</dt><dd id="detail-assigned-to">-</dd></div>
               <div><dt>Assigned by</dt><dd id="detail-assigned-by">-</dd></div>
+              <div><dt>Source</dt><dd id="detail-source">-</dd></div>
               <div><dt>Created at</dt><dd id="detail-created-at">-</dd></div>
               <div><dt>Updated at</dt><dd id="detail-updated-at">-</dd></div>
             </dl>
@@ -342,6 +344,11 @@
               <button id="detail-assign-btn" class="btn btn-primary" type="button">Assign Task</button>
               <button id="detail-assign-focus-btn" class="btn btn-secondary" type="button">Jump to Notes</button>
             </div>
+          </section>
+
+          <section id="detail-media-card" class="card hidden">
+            <h3 class="block-title">Media Evidence</h3>
+            <div id="detail-media-list" class="mod-media-grid"></div>
           </section>
 
           <section class="card">
@@ -517,6 +524,169 @@
               <span id="history-count" class="section__hint">0 items</span>
             </div>
             <div id="history-results" class="task-list"></div>
+          </section>
+        </section>
+
+
+        <section id="page-mod" class="page-view">
+          <section class="card mod-hero">
+            <div class="section__header section__header--home">
+              <div>
+                <p class="mod-hero__eyebrow">Manager on Duty</p>
+                <h2 class="section__title">MOD Checklist Report</h2>
+                <span class="section__hint">Open findings from daily hotel inspection with media evidence</span>
+              </div>
+            </div>
+            <div id="mod-summary-grid" class="summary-grid summary-grid--dashboard"></div>
+          </section>
+
+          <form id="mod-report-form" class="form-stack">
+            <section class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">Open New MOD Finding</h3>
+                  <span class="section__hint">Record issue, assign owner department, and attach photo or video</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Inspection Area</label>
+                <div class="chip-group chip-group--grid3" id="mod-area-chips">
+                  <button class="chip" type="button" data-value="Lobby">Lobby</button>
+                  <button class="chip" type="button" data-value="Guest Floor">Guest Floor</button>
+                  <button class="chip" type="button" data-value="Public Area">Public Area</button>
+                  <button class="chip" type="button" data-value="Restaurant / Bar">Restaurant / Bar</button>
+                  <button class="chip" type="button" data-value="Back of House">Back of House</button>
+                  <button class="chip" type="button" data-value="Pool / Outdoor">Pool / Outdoor</button>
+                </div>
+                <input id="mod-area" type="hidden" required />
+              </div>
+
+              <div class="filters-grid">
+                <div class="field">
+                  <label class="label" for="mod-location">Checklist Point / Location</label>
+                  <input id="mod-location" class="input" type="text" placeholder="Lobby entrance / Floor 5 corridor / Pool shower" required />
+                </div>
+                <div class="field">
+                  <label class="label">Owner Department</label>
+                  <div class="chip-group chip-group--grid4" id="mod-department-chips">
+                    <button class="chip" type="button" data-value="FO">FO</button>
+                    <button class="chip" type="button" data-value="FB">FB</button>
+                    <button class="chip" type="button" data-value="HK">HK</button>
+                    <button class="chip" type="button" data-value="Engineering">ENG</button>
+                  </div>
+                  <input id="mod-department" type="hidden" required />
+                </div>
+                <div class="field">
+                  <label class="label" for="mod-category">Checklist Category</label>
+                  <select id="mod-category" class="select">
+                    <option value="Safety">Safety</option>
+                    <option value="Cleanliness">Cleanliness</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Service">Service</option>
+                    <option value="Security">Security</option>
+                    <option value="Hygiene">Hygiene</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Severity</label>
+                <div class="chip-group chip-group--grid4" id="mod-priority-chips">
+                  <button class="chip" type="button" data-value="Low">Low</button>
+                  <button class="chip" type="button" data-value="Medium">Medium</button>
+                  <button class="chip" type="button" data-value="High">High</button>
+                  <button class="chip" type="button" data-value="Urgent">Urgent</button>
+                </div>
+                <input id="mod-priority" type="hidden" required />
+              </div>
+
+              <div class="field">
+                <label class="label" for="mod-subject">Finding Title</label>
+                <input id="mod-subject" class="input" type="text" placeholder="Wet floor with no caution sign" required />
+              </div>
+
+              <div class="field">
+                <label class="label" for="mod-detail">Issue Found</label>
+                <textarea id="mod-detail" class="textarea" placeholder="Describe what MOD found during inspection"></textarea>
+              </div>
+
+              <div class="field">
+                <label class="label" for="mod-action-note">Immediate Action / Instruction</label>
+                <textarea id="mod-action-note" class="textarea" placeholder="What should team do next? Any guest risk or follow-up note?"></textarea>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">Photo / Video Evidence</h3>
+                  <span class="section__hint">Take photo, record video, or upload from device</span>
+                </div>
+              </div>
+              <div class="field">
+                <input id="mod-media-input" class="input" type="file" accept="image/*,video/*" capture="environment" multiple />
+                <p class="helper-text">Local demo: smaller files can be previewed in-app. Large videos may be saved as filename only.</p>
+              </div>
+              <div id="mod-media-preview" class="mod-media-grid"></div>
+            </section>
+
+            <section class="card mod-create-task-card">
+              <label class="toggle-row" for="mod-create-task-toggle">
+                <div>
+                  <strong>Create follow-up task automatically</strong>
+                  <p class="helper-text">When on, the finding will also open a normal department task for follow-up.</p>
+                </div>
+                <input id="mod-create-task-toggle" type="checkbox" checked />
+              </label>
+            </section>
+          </form>
+
+          <div class="sticky-submit-bar">
+            <button id="mod-reset-btn" class="btn btn-secondary" type="button">Reset</button>
+            <button id="mod-submit-btn" class="btn btn-primary" type="button">Submit MOD Report</button>
+          </div>
+
+          <section class="card">
+            <div class="section__header section__header--home">
+              <div>
+                <h3 class="block-title">Today Findings</h3>
+                <span class="section__hint">Search and review MOD checklist reports</span>
+              </div>
+            </div>
+            <div id="mod-filter-chips" class="chips-scroll">
+              <button class="chip is-active" type="button" data-mod-filter="all">All</button>
+              <button class="chip" type="button" data-mod-filter="open">Open</button>
+              <button class="chip" type="button" data-mod-filter="high">High+</button>
+              <button class="chip" type="button" data-mod-filter="media">With Media</button>
+              <button class="chip" type="button" data-mod-filter="mine">Created by Me</button>
+            </div>
+            <div class="field">
+              <input id="mod-search" class="input" type="text" placeholder="Search MOD no / location / finding" />
+            </div>
+          </section>
+
+          <section class="section section-grid-2 mod-board-grid">
+            <div class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">MOD Report List</h3>
+                  <span id="mod-count" class="section__hint">0 reports</span>
+                </div>
+              </div>
+              <div id="mod-reports-list" class="task-list"></div>
+            </div>
+
+            <div class="card">
+              <div class="section__header section__header--home">
+                <div>
+                  <h3 class="block-title">MOD Report Detail</h3>
+                  <span id="mod-detail-hint" class="section__hint">Open one report to review media and follow-up</span>
+                </div>
+              </div>
+              <div id="mod-detail-panel"></div>
+            </div>
           </section>
         </section>
 
@@ -720,6 +890,10 @@
         <button id="nav-history" class="bottom-nav__item" type="button">
           <span class="bottom-nav__icon">&#x23F1;</span>
           <span id="nav-history-label">History</span>
+        </button>
+        <button id="nav-mod" class="bottom-nav__item hidden" type="button">
+          <span class="bottom-nav__icon">&#x2714;</span>
+          <span>MOD</span>
         </button>
         <button id="nav-reports" class="bottom-nav__item hidden" type="button">
           <span class="bottom-nav__icon">&#x25A3;</span>

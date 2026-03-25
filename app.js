@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   currentUser: 'lsh_current_user',
-  tasks: 'lsh_tasks'
+  tasks: 'lsh_tasks',
+  modReports: 'lsh_mod_reports'
 };
 
 const OVERDUE_MINUTES = {
@@ -13,6 +14,8 @@ const OVERDUE_MINUTES = {
 const DEPARTMENTS = ['FO', 'FB', 'HK', 'Engineering'];
 const STATUSES = ['New', 'Accepted', 'In Progress', 'Done', 'Closed'];
 const PRIORITIES = ['Urgent', 'High', 'Medium', 'Low'];
+const MOD_STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
+const MOD_MEDIA_INLINE_LIMIT = 2 * 1024 * 1024;
 const DEPARTMENT_COLORS = {
   FO: '#315f9f',
   FB: '#b08b57',
@@ -46,7 +49,8 @@ const users = [
   { employeeId: '33008', password: '1234', name: 'Tom', role: 'Staff', department: 'Engineering' },
   { employeeId: '44001', password: '1234', name: 'Mint', role: 'Supervisor', department: 'FB' },
   { employeeId: '44005', password: '1234', name: 'Ben', role: 'Staff', department: 'FB' },
-  { employeeId: '44006', password: '1234', name: 'Nan', role: 'Staff', department: 'FB' }
+  { employeeId: '44006', password: '1234', name: 'Nan', role: 'Staff', department: 'FB' },
+  { employeeId: '99001', password: '1234', name: 'Mook', role: 'MOD', department: 'Hotel Ops' }
 ];
 
 function createSeedTask(config) {
@@ -191,6 +195,52 @@ const seedTasks = [
   })
 ];
 
+const seedModReports = [
+  normalizeModReport({
+    id: 'mod_seed_1',
+    reportNo: 'MOD-20260325-0001',
+    area: 'Lobby',
+    location: 'Lobby entrance',
+    department: 'HK',
+    category: 'Cleanliness',
+    priority: 'High',
+    subject: 'Dust on main entrance glass panel',
+    detail: 'Dust and fingerprint marks clearly visible from guest arrival side.',
+    actionNote: 'Please wipe glass and check brass handle polish before evening peak.',
+    status: 'Open',
+    openedByName: 'Mook',
+    openedByDepartment: 'Hotel Ops',
+    createdAt: new Date(Date.now() - 75 * 60000).toISOString(),
+    updatedAt: new Date(Date.now() - 75 * 60000).toISOString(),
+    attachments: [],
+    logs: [{ action: 'Reported', note: 'Opened during AM MOD round.', byName: 'Mook', byDepartment: 'Hotel Ops', createdAt: new Date(Date.now() - 75 * 60000).toISOString() }]
+  }),
+  normalizeModReport({
+    id: 'mod_seed_2',
+    reportNo: 'MOD-20260325-0002',
+    area: 'Pool / Outdoor',
+    location: 'Pool shower',
+    department: 'Engineering',
+    category: 'Safety',
+    priority: 'Urgent',
+    subject: 'Loose shower handle at pool area',
+    detail: 'Metal shower handle is loose and could come off when guest uses it.',
+    actionNote: 'Block use immediately and repair before afternoon opening.',
+    status: 'In Progress',
+    openedByName: 'Noi',
+    openedByDepartment: 'FO',
+    createdAt: new Date(Date.now() - 35 * 60000).toISOString(),
+    updatedAt: new Date(Date.now() - 20 * 60000).toISOString(),
+    attachments: [],
+    linkedTaskId: 'LSH-20260325-0001',
+    linkedTaskTicketNo: 'LSH-20260325-0001',
+    logs: [
+      { action: 'Reported', note: 'Opened during MOD pool inspection.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 35 * 60000).toISOString() },
+      { action: 'Follow-up Started', note: 'Engineering informed and area blocked.', byName: 'Noi', byDepartment: 'FO', createdAt: new Date(Date.now() - 20 * 60000).toISOString() }
+    ]
+  })
+];
+
 const screens = {
   login: document.getElementById('screen-login'),
   app: document.getElementById('screen-app')
@@ -203,6 +253,7 @@ const pages = {
   detail: document.getElementById('page-detail'),
   create: document.getElementById('page-create'),
   history: document.getElementById('page-history'),
+  mod: document.getElementById('page-mod'),
   reports: document.getElementById('page-reports')
 };
 
@@ -219,6 +270,7 @@ const els = {
   navCreate: document.getElementById('nav-create'),
   navHistory: document.getElementById('nav-history'),
   navHistoryLabel: document.getElementById('nav-history-label'),
+  navMod: document.getElementById('nav-mod'),
   navReports: document.getElementById('nav-reports'),
   bottomNav: document.getElementById('bottom-nav'),
   homeCreateBtn: document.getElementById('home-create-btn'),
@@ -292,6 +344,7 @@ const els = {
   detailOpenedBy: document.getElementById('detail-opened-by'),
   detailAssignedTo: document.getElementById('detail-assigned-to'),
   detailAssignedBy: document.getElementById('detail-assigned-by'),
+  detailSource: document.getElementById('detail-source'),
   detailCreatedAt: document.getElementById('detail-created-at'),
   detailUpdatedAt: document.getElementById('detail-updated-at'),
   detailActions: document.getElementById('detail-actions'),
@@ -301,6 +354,8 @@ const els = {
   detailAssignNote: document.getElementById('detail-assign-note'),
   detailAssignBtn: document.getElementById('detail-assign-btn'),
   detailAssignFocusBtn: document.getElementById('detail-assign-focus-btn'),
+  detailMediaCard: document.getElementById('detail-media-card'),
+  detailMediaList: document.getElementById('detail-media-list'),
   detailTimeline: document.getElementById('detail-timeline'),
   detailNoteInput: document.getElementById('detail-note-input'),
   detailSaveNoteBtn: document.getElementById('detail-save-note-btn'),
@@ -336,7 +391,23 @@ const els = {
   reportStatusLegend: document.getElementById('report-status-legend'),
   reportRangeLabel: document.getElementById('report-range-label'),
   reportResults: document.getElementById('report-results'),
-  reportExecSummary: document.getElementById('report-exec-summary')
+  reportExecSummary: document.getElementById('report-exec-summary'),
+  modReportForm: document.getElementById('mod-report-form'),
+  modArea: document.getElementById('mod-area'),
+  modDepartment: document.getElementById('mod-department'),
+  modPriority: document.getElementById('mod-priority'),
+  modMediaInput: document.getElementById('mod-media-input'),
+  modMediaPreview: document.getElementById('mod-media-preview'),
+  modCreateTaskToggle: document.getElementById('mod-create-task-toggle'),
+  modSubmitBtn: document.getElementById('mod-submit-btn'),
+  modResetBtn: document.getElementById('mod-reset-btn'),
+  modFilterChips: document.getElementById('mod-filter-chips'),
+  modSearch: document.getElementById('mod-search'),
+  modReportsList: document.getElementById('mod-reports-list'),
+  modCount: document.getElementById('mod-count'),
+  modDetailPanel: document.getElementById('mod-detail-panel'),
+  modDetailHint: document.getElementById('mod-detail-hint'),
+  modSummaryGrid: document.getElementById('mod-summary-grid')
 };
 
 const state = {
@@ -352,16 +423,24 @@ const state = {
   teamAssigneeFilter: '__ALL__',
   historyPreset: 'today',
   reportPreset: 'today',
-  reportViewMode: 'daily'
+  reportViewMode: 'daily',
+  currentModReportId: null,
+  modFilter: 'all',
+  modSearch: '',
+  modDraftMedia: []
 };
 
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
   initializeTasks();
+  initializeModReports();
   bindEvents();
   setupChipGroup(document.getElementById('department-chips'), els.taskDepartment, 'FO', false, renderCreateAssignmentState);
   setupChipGroup(document.getElementById('priority-chips'), els.taskPriority, 'Medium');
+  setupChipGroup(document.getElementById('mod-area-chips'), els.modArea, 'Lobby');
+  setupChipGroup(document.getElementById('mod-department-chips'), els.modDepartment, 'Engineering');
+  setupChipGroup(document.getElementById('mod-priority-chips'), els.modPriority, 'High');
   setDatePreset('history', 'today', true);
   setDatePreset('report', 'today', true);
   restoreSession();
@@ -374,14 +453,15 @@ function bindEvents() {
   });
   els.logoutBtn.addEventListener('click', logout);
   els.backBtn.addEventListener('click', onBack);
-  els.navHome.addEventListener('click', () => showPage(isManager() ? 'dashboard' : 'home'));
+  els.navHome.addEventListener('click', () => showPage(getHomeNavPage()));
   els.navTasks.addEventListener('click', () => { clearTaskContext(); showPage('tasks'); });
   els.navCreate.addEventListener('click', () => showPage('create'));
   els.navHistory.addEventListener('click', () => showPage('history'));
+  els.navMod.addEventListener('click', () => showPage('mod'));
   els.navReports.addEventListener('click', () => showPage('reports'));
   els.homeCreateBtn.addEventListener('click', () => showPage('create'));
   els.homeViewTasksBtn.addEventListener('click', openDepartmentTasksFromHome);
-  els.cancelCreateBtn.addEventListener('click', () => showPage(isManager() ? 'dashboard' : 'home'));
+  els.cancelCreateBtn.addEventListener('click', () => showPage(getDefaultLandingPage()));
   els.createTaskForm.addEventListener('submit', onCreateTask);
   els.taskStatusTabs.addEventListener('click', onTaskTabClick);
   els.taskFilterHigh.addEventListener('click', toggleHighFilter);
@@ -422,6 +502,14 @@ function bindEvents() {
   els.reportStatus.addEventListener('change', renderReportsPage);
   els.reportExportCsv.addEventListener('click', exportReportCsv);
   els.reportExportPdf.addEventListener('click', exportReportPdf);
+  els.modMediaInput.addEventListener('change', onModMediaSelected);
+  els.modMediaPreview.addEventListener('click', onModMediaPreviewClick);
+  els.modSubmitBtn.addEventListener('click', submitModReport);
+  els.modResetBtn.addEventListener('click', resetModForm);
+  els.modFilterChips.addEventListener('click', onModFilterClick);
+  els.modSearch.addEventListener('input', onModSearchInput);
+  els.modReportsList.addEventListener('click', onModReportListClick);
+  els.modDetailPanel.addEventListener('click', onModDetailClick);
   els.dashGoTasks.addEventListener('click', () => { clearTaskContext(); showPage('tasks'); });
   els.dashGoHistory.addEventListener('click', () => showPage('history'));
   els.dashGoReports.addEventListener('click', () => showPage('reports'));
@@ -431,6 +519,13 @@ function initializeTasks() {
   const existing = localStorage.getItem(STORAGE_KEYS.tasks);
   if (!existing) {
     localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(seedTasks));
+  }
+}
+
+function initializeModReports() {
+  const existing = localStorage.getItem(STORAGE_KEYS.modReports);
+  if (!existing) {
+    localStorage.setItem(STORAGE_KEYS.modReports, JSON.stringify(seedModReports));
   }
 }
 
@@ -469,17 +564,21 @@ function showApp() {
   screens.login.classList.remove('screen--active');
   screens.app.classList.add('screen--active');
   configureNavigation();
-  showPage(isManager() ? 'dashboard' : 'home');
+  showPage(getDefaultLandingPage());
   renderApp();
 }
 
 function configureNavigation() {
   const manager = isManager();
+  const modAccess = canAccessMod();
+  const reportsAccess = canViewReports();
   els.navHomeLabel.textContent = manager ? 'Dash' : 'Home';
   els.navHistoryLabel.textContent = 'History';
-  els.navReports.classList.toggle('hidden', !manager);
-  els.bottomNav.classList.toggle('bottom-nav--count-5', manager);
-  els.bottomNav.classList.toggle('bottom-nav--count-4', !manager);
+  els.navMod.classList.toggle('hidden', !modAccess);
+  els.navReports.classList.toggle('hidden', !reportsAccess);
+  els.bottomNav.classList.remove('bottom-nav--count-4', 'bottom-nav--count-5', 'bottom-nav--count-6');
+  const visibleCount = 4 + (modAccess ? 1 : 0) + (reportsAccess ? 1 : 0);
+  els.bottomNav.classList.add(`bottom-nav--count-${visibleCount}`);
 }
 
 function showPage(pageName) {
@@ -494,7 +593,7 @@ function showPage(pageName) {
 
   setActiveNav(pageName);
   updateTopbar(pageName);
-  els.backBtn.classList.toggle('hidden', pageName === 'home' || pageName === 'dashboard');
+  els.backBtn.classList.toggle('hidden', pageName === 'home' || pageName === 'dashboard' || pageName === 'mod');
 
   if (pageName === 'create') {
     els.openedByText.textContent = `Opened by: ${state.currentUser.name} / ${state.currentUser.department} / ${formatDateTime(new Date().toISOString())}`;
@@ -505,15 +604,16 @@ function showPage(pageName) {
   if (pageName === 'detail') renderTaskDetail();
   if (pageName === 'history') renderHistoryPage();
   if (pageName === 'dashboard') renderDashboardPage();
+  if (pageName === 'mod') renderModPage();
   if (pageName === 'reports') renderReportsPage();
 }
 
 function onBack() {
   if (state.currentView === 'detail') {
-    showPage(state.previousView === 'history' ? 'history' : state.previousView === 'reports' ? 'reports' : 'tasks');
+    showPage(state.previousView === 'history' ? 'history' : state.previousView === 'reports' ? 'reports' : state.previousView === 'mod' ? 'mod' : 'tasks');
     return;
   }
-  showPage(isManager() ? 'dashboard' : 'home');
+  showPage(getDefaultLandingPage());
 }
 
 function setActiveNav(pageName) {
@@ -524,9 +624,10 @@ function setActiveNav(pageName) {
     detail: els.navTasks,
     create: els.navCreate,
     history: els.navHistory,
+    mod: els.navMod,
     reports: els.navReports
   };
-  [els.navHome, els.navTasks, els.navCreate, els.navHistory, els.navReports].forEach((btn) => btn.classList.remove('is-active'));
+  [els.navHome, els.navTasks, els.navCreate, els.navHistory, els.navMod, els.navReports].forEach((btn) => btn.classList.remove('is-active'));
   activeMap[pageName]?.classList.add('is-active');
 }
 
@@ -538,6 +639,7 @@ function updateTopbar(pageName) {
     tasks: ['Tasks', getTaskPageSubtitle()],
     detail: ['Task Detail', 'View status, notes, and action'],
     history: ['History', 'Search previous tasks'],
+    mod: ['MOD Checklist Report', 'Open findings from daily inspection'],
     reports: ['Reports', 'Summary and export']
   };
   const [title, subtitle] = titleMap[pageName] || ['Laya Service Hub', ''];
@@ -553,10 +655,9 @@ function renderApp() {
   renderSupervisorTaskBoard();
   renderTaskList();
   renderHistoryPage();
-  if (isManager()) {
-    renderDashboardPage();
-    renderReportsPage();
-  }
+  if (canAccessMod()) renderModPage();
+  if (isManager()) renderDashboardPage();
+  if (canViewReports()) renderReportsPage();
   if (state.currentTaskId) renderTaskDetail();
 }
 
@@ -1552,6 +1653,7 @@ function renderTaskDetail() {
     els.detailOpenedBy.textContent = '-';
     els.detailAssignedTo.textContent = '-';
     els.detailAssignedBy.textContent = '-';
+    els.detailSource.textContent = '-';
     els.detailCreatedAt.textContent = '-';
     els.detailUpdatedAt.textContent = '-';
     els.detailPriorityBadge.className = 'badge badge-priority-low';
@@ -1560,6 +1662,8 @@ function renderTaskDetail() {
     els.detailStatusBadge.textContent = '-';
     els.detailActions.innerHTML = '<div class="helper-text">No action available.</div>';
     els.detailAssignCard.classList.add('hidden');
+    els.detailMediaCard.classList.add('hidden');
+    els.detailMediaList.innerHTML = '';
     els.detailNoteInput.value = '';
     els.detailTimeline.innerHTML = emptyStateHTML('Task not found', 'This task may have been removed.');
     return;
@@ -1574,6 +1678,7 @@ function renderTaskDetail() {
   els.detailOpenedBy.textContent = `${task.openedByName} / ${task.openedByDepartment}`;
   els.detailAssignedTo.textContent = task.assignedToName || '-';
   els.detailAssignedBy.textContent = task.assignedByName ? `${task.assignedByName} / ${task.assignedByDepartment || '-'}` : '-';
+  els.detailSource.textContent = task.sourceType ? `${task.sourceType}${task.sourceReference ? ` / ${task.sourceReference}` : ''}` : '-';
   els.detailCreatedAt.textContent = formatDateTime(task.createdAt);
   els.detailUpdatedAt.textContent = formatDateTime(task.updatedAt || task.createdAt);
 
@@ -1588,6 +1693,7 @@ function renderTaskDetail() {
     : '<div class="helper-text">No direct action available for this user in current status.</div>';
 
   renderDetailAssignmentState(task);
+  renderTaskMedia(task);
 
   const logs = [...(task.logs || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   els.detailTimeline.innerHTML = logs.length
@@ -1604,13 +1710,13 @@ function renderHistoryPage() {
 }
 
 function renderReportsPage() {
-  if (!isManager()) {
-    els.reportResults.innerHTML = emptyStateHTML('Manager only', 'This page is available for manager role.');
-    if (els.reportDepartmentChart) els.reportDepartmentChart.innerHTML = chartEmptyStateHTML('Manager only');
-    if (els.reportTrendChart) els.reportTrendChart.innerHTML = chartEmptyStateHTML('Manager only');
-    if (els.reportPriorityChart) els.reportPriorityChart.innerHTML = chartEmptyStateHTML('Manager only');
+  if (!canViewReports()) {
+    els.reportResults.innerHTML = emptyStateHTML('Manager / MOD only', 'This page is available for manager-level roles.');
+    if (els.reportDepartmentChart) els.reportDepartmentChart.innerHTML = chartEmptyStateHTML('Manager / MOD only');
+    if (els.reportTrendChart) els.reportTrendChart.innerHTML = chartEmptyStateHTML('Manager / MOD only');
+    if (els.reportPriorityChart) els.reportPriorityChart.innerHTML = chartEmptyStateHTML('Manager / MOD only');
     if (els.reportPrioritySummary) els.reportPrioritySummary.innerHTML = '';
-    if (els.reportStatusDonut) els.reportStatusDonut.innerHTML = chartEmptyStateHTML('Manager only');
+    if (els.reportStatusDonut) els.reportStatusDonut.innerHTML = chartEmptyStateHTML('Manager / MOD only');
     if (els.reportStatusLegend) els.reportStatusLegend.innerHTML = '';
     return;
   }
@@ -2018,6 +2124,489 @@ function chartEmptyStateHTML(message) {
   return `<div class="report-chart-empty">${escapeHtml(message)}</div>`;
 }
 
+function renderTaskMedia(task) {
+  const media = Array.isArray(task.mediaAttachments) ? task.mediaAttachments : [];
+  const hasMedia = media.length > 0;
+  els.detailMediaCard.classList.toggle('hidden', !hasMedia);
+  els.detailMediaList.innerHTML = hasMedia ? renderMediaGallery(media) : '';
+}
+
+function getModReports() {
+  return (JSON.parse(localStorage.getItem(STORAGE_KEYS.modReports) || '[]')).map(normalizeModReport);
+}
+
+function saveModReports(reports) {
+  localStorage.setItem(STORAGE_KEYS.modReports, JSON.stringify(reports));
+}
+
+function normalizeModReport(report) {
+  return {
+    id: report.id || `mod_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    reportNo: report.reportNo || generateModReportNo(getModReportsRawSafe()),
+    area: report.area || 'Lobby',
+    location: report.location || '-',
+    department: report.department || 'Engineering',
+    category: report.category || 'Other',
+    priority: report.priority || 'High',
+    subject: report.subject || '-',
+    detail: report.detail || '',
+    actionNote: report.actionNote || '',
+    status: report.status || 'Open',
+    openedByName: report.openedByName || '-',
+    openedByDepartment: report.openedByDepartment || '-',
+    createdAt: report.createdAt || new Date().toISOString(),
+    updatedAt: report.updatedAt || report.createdAt || new Date().toISOString(),
+    linkedTaskId: report.linkedTaskId || '',
+    linkedTaskTicketNo: report.linkedTaskTicketNo || '',
+    attachments: Array.isArray(report.attachments) ? report.attachments : [],
+    logs: Array.isArray(report.logs) ? report.logs : []
+  };
+}
+
+function getModReportsRawSafe() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.modReports) || '[]');
+  } catch (error) {
+    return [];
+  }
+}
+
+function generateModReportNo(reports) {
+  const today = new Date();
+  const datePart = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+  const count = reports.filter((item) => String(item.reportNo || '').includes(datePart)).length + 1;
+  return `MOD-${datePart}-${String(count).padStart(4, '0')}`;
+}
+
+async function onModMediaSelected(event) {
+  const files = Array.from(event.target.files || []);
+  state.modDraftMedia = await Promise.all(files.map(serializeMediaFile));
+  renderModMediaPreview();
+}
+
+async function serializeMediaFile(file) {
+  const base = {
+    id: `media_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    kind: file.type.startsWith('video/') ? 'video' : 'image',
+    dataUrl: '',
+    inlineSaved: false
+  };
+  if (file.size > MOD_MEDIA_INLINE_LIMIT) return base;
+  const dataUrl = await readFileAsDataUrl(file);
+  return { ...base, dataUrl, inlineSaved: true };
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('File read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderModMediaPreview() {
+  const items = state.modDraftMedia || [];
+  els.modMediaPreview.innerHTML = items.length
+    ? renderMediaGallery(items, { removable: true })
+    : emptyStateHTML('No media selected', 'Attach photo or video evidence for this MOD finding.');
+}
+
+function renderMediaGallery(items, options = {}) {
+  return items.map((item, index) => `
+    <div class="mod-media-card">
+      <div class="mod-media-card__preview">
+        ${item.kind === 'video'
+          ? (item.dataUrl
+              ? `<video src="${escapeHtml(item.dataUrl)}" controls muted playsinline></video>`
+              : `<div class="mod-media-placeholder">Video file<br>${escapeHtml(item.name)}</div>`)
+          : (item.dataUrl
+              ? `<img src="${escapeHtml(item.dataUrl)}" alt="${escapeHtml(item.name)}" />`
+              : `<div class="mod-media-placeholder">Image file<br>${escapeHtml(item.name)}</div>`)}
+      </div>
+      <div class="mod-media-card__meta">
+        <div class="mod-media-card__name">${escapeHtml(item.name)}</div>
+        <div class="mod-media-card__sub">${item.kind === 'video' ? 'Video' : 'Photo'} / ${formatFileSize(item.size)}${item.inlineSaved ? '' : ' / filename only'}</div>
+      </div>
+      ${options.removable ? `<button class="link-btn" type="button" data-mod-remove-media="${index}">Remove</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function formatFileSize(size) {
+  if (!size) return '0 KB';
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(size / 1024))} KB`;
+}
+
+async function submitModReport() {
+  if (!canAccessMod()) {
+    alert('This page is available for MOD / Manager role.');
+    return;
+  }
+
+  const area = els.modArea.value.trim();
+  const location = document.getElementById('mod-location').value.trim();
+  const department = els.modDepartment.value.trim();
+  const category = document.getElementById('mod-category').value;
+  const priority = els.modPriority.value.trim();
+  const subject = document.getElementById('mod-subject').value.trim();
+  const detail = document.getElementById('mod-detail').value.trim();
+  const actionNote = document.getElementById('mod-action-note').value.trim();
+
+  if (!area || !location || !department || !priority || !subject) {
+    alert('Please fill required fields: area, location, owner department, severity, and title.');
+    return;
+  }
+
+  const reports = getModReports();
+  const now = new Date().toISOString();
+  const reportNo = generateModReportNo(reports);
+  const attachments = (state.modDraftMedia || []).map((item) => ({ ...item }));
+
+  let linkedTaskId = '';
+  let linkedTaskTicketNo = '';
+  if (els.modCreateTaskToggle.checked) {
+    const task = createTaskFromModFinding({ reportNo, location, department, category, priority, subject, detail, actionNote, attachments });
+    linkedTaskId = task.id;
+    linkedTaskTicketNo = task.ticketNo;
+  }
+
+  const report = normalizeModReport({
+    id: `mod_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    reportNo,
+    area,
+    location,
+    department,
+    category,
+    priority,
+    subject,
+    detail,
+    actionNote,
+    status: linkedTaskId ? 'In Progress' : 'Open',
+    openedByName: state.currentUser.name,
+    openedByDepartment: state.currentUser.department,
+    createdAt: now,
+    updatedAt: now,
+    linkedTaskId,
+    linkedTaskTicketNo,
+    attachments,
+    logs: [{ action: 'Reported', note: actionNote || subject, byName: state.currentUser.name, byDepartment: state.currentUser.department, createdAt: now }]
+  });
+
+  if (linkedTaskId) {
+    report.logs.unshift({ action: 'Task Opened', note: `Linked follow-up task ${linkedTaskTicketNo} created for ${department}.`, byName: state.currentUser.name, byDepartment: state.currentUser.department, createdAt: now });
+  }
+
+  reports.unshift(report);
+  saveModReports(reports);
+  state.currentModReportId = report.id;
+  resetModForm(false);
+  renderApp();
+  showPage('mod');
+  alert(linkedTaskTicketNo
+    ? `MOD report submitted: ${report.reportNo} / Linked task: ${linkedTaskTicketNo}`
+    : `MOD report submitted: ${report.reportNo}`);
+}
+
+function createTaskFromModFinding({ reportNo, location, department, category, priority, subject, detail, actionNote, attachments }) {
+  const tasks = getTasks();
+  const now = new Date().toISOString();
+  const newTask = normalizeTask({
+    id: generateId(),
+    ticketNo: generateTicketNo(tasks),
+    location,
+    department,
+    category: category === 'Engineering' ? 'Repair' : category,
+    priority,
+    subject: `[MOD] ${subject}`,
+    detail: [detail, actionNote ? `MOD instruction: ${actionNote}` : '', `Source: ${reportNo}`].filter(Boolean).join('\n'),
+    status: 'New',
+    openedByName: state.currentUser.name,
+    openedByDepartment: state.currentUser.department,
+    sourceType: 'MOD',
+    sourceReference: reportNo,
+    mediaAttachments: attachments,
+    createdAt: now,
+    updatedAt: now,
+    logs: [{ action: 'Created', note: `Task opened from MOD report ${reportNo}.`, byName: state.currentUser.name, byDepartment: state.currentUser.department, createdAt: now }]
+  });
+  tasks.unshift(newTask);
+  saveTasks(tasks);
+  return newTask;
+}
+
+function resetModForm(resetSelection = true) {
+  if (els.modReportForm) els.modReportForm.reset();
+  state.modDraftMedia = [];
+  if (els.modMediaInput) els.modMediaInput.value = '';
+  renderModMediaPreview();
+  if (resetSelection) state.currentModReportId = '';
+  setupChipGroup(document.getElementById('mod-area-chips'), els.modArea, 'Lobby', true);
+  setupChipGroup(document.getElementById('mod-department-chips'), els.modDepartment, 'Engineering', true);
+  setupChipGroup(document.getElementById('mod-priority-chips'), els.modPriority, 'High', true);
+  if (els.modCreateTaskToggle) els.modCreateTaskToggle.checked = true;
+}
+
+function renderModPage() {
+  if (!canAccessMod()) {
+    els.modReportsList.innerHTML = emptyStateHTML('MOD access only', 'This page is available for MOD / Manager role.');
+    els.modDetailPanel.innerHTML = emptyStateHTML('No access', 'Please login with MOD or manager-level account.');
+    els.modSummaryGrid.innerHTML = '';
+    return;
+  }
+  renderModMediaPreview();
+  renderModSummary();
+  renderModReportList();
+  renderModReportDetail();
+}
+
+function renderModSummary() {
+  const reports = getModReports();
+  const todayKey = new Date().toDateString();
+  const openCount = reports.filter((item) => !['Resolved', 'Closed'].includes(item.status)).length;
+  const highCount = reports.filter((item) => ['High', 'Urgent'].includes(item.priority) && !['Resolved', 'Closed'].includes(item.status)).length;
+  const mediaCount = reports.filter((item) => (item.attachments || []).length > 0).length;
+  const todayCount = reports.filter((item) => new Date(item.createdAt).toDateString() === todayKey).length;
+  els.modSummaryGrid.innerHTML = [
+    { label: 'Open Findings', value: openCount },
+    { label: 'High Risk', value: highCount },
+    { label: 'With Media', value: mediaCount },
+    { label: 'Today Submitted', value: todayCount }
+  ].map((card) => `
+    <article class="card stat-card">
+      <span class="stat-card__label">${escapeHtml(card.label)}</span>
+      <strong class="stat-card__value">${card.value}</strong>
+    </article>
+  `).join('');
+}
+
+function getFilteredModReports() {
+  const search = state.modSearch || '';
+  return getModReports()
+    .filter((item) => {
+      if (state.modFilter === 'open') return !['Resolved', 'Closed'].includes(item.status);
+      if (state.modFilter === 'high') return ['High', 'Urgent'].includes(item.priority);
+      if (state.modFilter === 'media') return (item.attachments || []).length > 0;
+      if (state.modFilter === 'mine') return item.openedByName === state.currentUser?.name;
+      return true;
+    })
+    .filter((item) => (`${item.reportNo} ${item.location} ${item.subject} ${item.detail} ${item.area}`).toLowerCase().includes(search))
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+}
+
+function renderModReportList() {
+  const reports = getFilteredModReports();
+  els.modCount.textContent = `${reports.length} report${reports.length === 1 ? '' : 's'}`;
+  els.modReportsList.innerHTML = reports.length
+    ? reports.map((report) => modReportCardHTML(report)).join('')
+    : emptyStateHTML('No MOD report found', 'Try another filter or create a new finding above.');
+}
+
+function modReportCardHTML(report) {
+  const active = state.currentModReportId === report.id ? ' is-selected' : '';
+  return `
+    <article class="card task-card mod-report-card${active}">
+      <div class="task-card__top">
+        <span class="task-card__ticket">${escapeHtml(report.reportNo)}</span>
+        <span class="task-card__time">${timeAgo(report.updatedAt || report.createdAt)}</span>
+      </div>
+      <div class="task-card__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)}</div>
+      <h3 class="task-card__title">${escapeHtml(report.subject)}</h3>
+      <div class="task-card__badges">
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
+      </div>
+      <div class="task-card__info">
+        <span>${escapeHtml(report.department)} / ${escapeHtml(report.category)}</span>
+        <span>Media: ${(report.attachments || []).length}</span>
+      </div>
+      <div class="task-card__actions">
+        <button class="btn btn-secondary" type="button" data-mod-open="${escapeHtml(report.id)}">Open</button>
+        ${report.linkedTaskId ? `<button class="btn btn-primary" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">View Task</button>` : `<button class="btn btn-primary" type="button" data-mod-open="${escapeHtml(report.id)}">Review</button>`}
+      </div>
+    </article>
+  `;
+}
+
+function renderModReportDetail() {
+  const reports = getModReports();
+  const report = reports.find((item) => item.id === state.currentModReportId) || reports[0] || null;
+  if (report && !state.currentModReportId) state.currentModReportId = report.id;
+  if (!report) {
+    els.modDetailHint.textContent = 'Open one report to review media and follow-up';
+    els.modDetailPanel.innerHTML = emptyStateHTML('No MOD report yet', 'Create the first inspection finding from the form above.');
+    return;
+  }
+  els.modDetailHint.textContent = `${report.reportNo} / ${report.department}`;
+  const logs = [...(report.logs || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  els.modDetailPanel.innerHTML = `
+    <div class="mod-detail-head">
+      <div>
+        <p class="task-card__ticket">${escapeHtml(report.reportNo)}</p>
+        <h3 class="task-hero__title">${escapeHtml(report.subject)}</h3>
+        <p class="task-hero__meta">${escapeHtml(report.area)} / ${escapeHtml(report.location)}</p>
+      </div>
+      <div class="task-card__badges">
+        <span class="badge ${priorityBadgeClass(report.priority)}">${escapeHtml(report.priority)}</span>
+        <span class="badge ${modStatusBadgeClass(report.status)}">${escapeHtml(report.status)}</span>
+      </div>
+    </div>
+    <dl class="detail-list">
+      <div><dt>Owner Dept</dt><dd>${escapeHtml(report.department)}</dd></div>
+      <div><dt>Category</dt><dd>${escapeHtml(report.category)}</dd></div>
+      <div><dt>Opened by</dt><dd>${escapeHtml(report.openedByName)} / ${escapeHtml(report.openedByDepartment)}</dd></div>
+      <div><dt>Linked Task</dt><dd>${report.linkedTaskId ? `<button class="link-btn" type="button" data-task-view="${escapeHtml(report.linkedTaskId)}">${escapeHtml(report.linkedTaskTicketNo || 'Open task')}</button>` : '-'}</dd></div>
+      <div><dt>Created</dt><dd>${formatDateTime(report.createdAt)}</dd></div>
+      <div><dt>Updated</dt><dd>${formatDateTime(report.updatedAt)}</dd></div>
+    </dl>
+    <div class="card mod-detail-block">
+      <h4 class="block-title">Issue Found</h4>
+      <p class="detail-description">${escapeHtml(report.detail || 'No detail provided.')}</p>
+      <h4 class="block-title">Immediate Action / Instruction</h4>
+      <p class="detail-description">${escapeHtml(report.actionNote || '-')}</p>
+    </div>
+    <div class="card mod-detail-block">
+      <div class="section__header section__header--home">
+        <div>
+          <h4 class="block-title">Media Evidence</h4>
+          <span class="section__hint">${(report.attachments || []).length} file(s)</span>
+        </div>
+      </div>
+      <div class="mod-media-grid">${(report.attachments || []).length ? renderMediaGallery(report.attachments) : emptyStateHTML('No media attached', 'No photo or video was attached to this MOD report.')}</div>
+    </div>
+    <div class="action-grid mod-detail-actions">
+      ${getModDetailActions(report).map((action) => `<button class="btn ${action.primary ? 'btn-primary' : 'btn-secondary'}" type="button" data-mod-action="${action.value}" data-mod-id="${report.id}">${action.label}</button>`).join('')}
+    </div>
+    <div class="card mod-detail-block">
+      <h4 class="block-title">Timeline</h4>
+      <div class="timeline">${logs.length ? logs.map((log) => timelineItemHTML(log)).join('') : emptyStateHTML('No timeline yet', 'Updates will appear here.')}</div>
+    </div>
+  `;
+}
+
+function getModDetailActions(report) {
+  const actions = [];
+  if (report.status === 'Open') actions.push({ value: 'start', label: 'Start Follow-up', primary: true });
+  if (report.status === 'In Progress') actions.push({ value: 'resolve', label: 'Mark Resolved', primary: true });
+  if (report.status === 'Resolved') actions.push({ value: 'close', label: 'Close Report', primary: true });
+  if (report.status === 'Closed') actions.push({ value: 'reopen', label: 'Reopen', primary: false });
+  if (!report.linkedTaskId) actions.push({ value: 'createTask', label: 'Create Task', primary: false });
+  return actions;
+}
+
+function onModFilterClick(event) {
+  const chip = event.target.closest('[data-mod-filter]');
+  if (!chip) return;
+  state.modFilter = chip.dataset.modFilter;
+  Array.from(els.modFilterChips.querySelectorAll('.chip')).forEach((node) => node.classList.toggle('is-active', node === chip));
+  renderModReportList();
+  renderModReportDetail();
+}
+
+function onModMediaPreviewClick(event) {
+  const removeBtn = event.target.closest('[data-mod-remove-media]');
+  if (!removeBtn) return;
+  state.modDraftMedia.splice(Number(removeBtn.dataset.modRemoveMedia), 1);
+  renderModMediaPreview();
+}
+
+function onModSearchInput(event) {
+  state.modSearch = event.target.value.trim().toLowerCase();
+  renderModReportList();
+  renderModReportDetail();
+}
+
+function onModReportListClick(event) {
+  const openBtn = event.target.closest('[data-mod-open]');
+  const taskBtn = event.target.closest('[data-task-view]');
+  if (taskBtn) {
+    openTaskDetail(taskBtn.dataset.taskView);
+    return;
+  }
+  if (!openBtn) return;
+  state.currentModReportId = openBtn.dataset.modOpen;
+  renderModReportList();
+  renderModReportDetail();
+}
+
+function onModDetailClick(event) {
+  const taskBtn = event.target.closest('[data-task-view]');
+  if (taskBtn) {
+    openTaskDetail(taskBtn.dataset.taskView);
+    return;
+  }
+  const actionBtn = event.target.closest('[data-mod-action]');
+  if (!actionBtn) return;
+  runModReportAction(actionBtn.dataset.modAction, actionBtn.dataset.modId);
+}
+
+function runModReportAction(action, reportId) {
+  const reports = getModReports();
+  const report = reports.find((item) => item.id === reportId);
+  if (!report) return;
+  const now = new Date().toISOString();
+  if (action === 'createTask' && !report.linkedTaskId) {
+    const task = createTaskFromModFinding({
+      reportNo: report.reportNo,
+      location: report.location,
+      department: report.department,
+      category: report.category,
+      priority: report.priority,
+      subject: report.subject,
+      detail: report.detail,
+      actionNote: report.actionNote,
+      attachments: report.attachments || []
+    });
+    updateModReport(reportId, (draft) => {
+      draft.linkedTaskId = task.id;
+      draft.linkedTaskTicketNo = task.ticketNo;
+      draft.status = draft.status === 'Open' ? 'In Progress' : draft.status;
+      draft.updatedAt = now;
+      draft.logs.unshift({ action: 'Task Opened', note: `Linked follow-up task ${task.ticketNo} created.`, byName: state.currentUser.name, byDepartment: state.currentUser.department, createdAt: now });
+      return draft;
+    });
+    renderApp();
+    return;
+  }
+
+  const transitionMap = {
+    start: { status: 'In Progress', label: 'Follow-up Started' },
+    resolve: { status: 'Resolved', label: 'Resolved' },
+    close: { status: 'Closed', label: 'Closed' },
+    reopen: { status: 'In Progress', label: 'Reopened' }
+  };
+  const step = transitionMap[action];
+  if (!step) return;
+  updateModReport(reportId, (draft) => {
+    draft.status = step.status;
+    draft.updatedAt = now;
+    draft.logs.unshift({ action: step.label, note: `${step.label} by ${state.currentUser.name}.`, byName: state.currentUser.name, byDepartment: state.currentUser.department, createdAt: now });
+    return draft;
+  });
+  renderApp();
+}
+
+function updateModReport(reportId, updater) {
+  const updated = getModReports().map((report) => {
+    if (report.id !== reportId) return report;
+    return normalizeModReport(updater({ ...report, logs: [...(report.logs || [])], attachments: [...(report.attachments || [])] }));
+  });
+  saveModReports(updated);
+}
+
+function modStatusBadgeClass(status) {
+  return {
+    'Open': 'badge-status-new',
+    'In Progress': 'badge-status-progress',
+    'Resolved': 'badge-status-done',
+    'Closed': 'badge-status-closed'
+  }[status] || 'badge-status-new';
+}
+
 function onTaskCardClick(event) {
   const viewButton = event.target.closest('[data-task-view]');
   const actionButton = event.target.closest('[data-task-action]');
@@ -2146,8 +2735,8 @@ function renderCreateAssignmentState() {
   const assignees = getAssignableUsers(selectedDepartment);
   populateAssigneeSelect(els.createAssignSelect, assignees, '', `Optional: assign immediately to ${selectedDepartment} team`);
   if (els.createAssignHelper) {
-    els.createAssignHelper.textContent = isManager()
-      ? 'Manager can assign tasks to any department during creation.'
+    els.createAssignHelper.textContent = canSeeAllHotelTasks()
+      ? `${state.currentUser.role} can assign tasks to any department during creation.`
       : `Supervisor can assign only to ${state.currentUser.department} team during creation.`;
   }
 }
@@ -2241,15 +2830,15 @@ function getAssignableUsers(department) {
 }
 
 function canAssignToDepartment(department) {
-  return isManager() || (isSupervisor() && state.currentUser?.department === department);
+  return canSeeAllHotelTasks() || (isSupervisor() && state.currentUser?.department === department);
 }
 
 function canManageAssignments(task) {
-  return isManager() || (isSupervisor() && state.currentUser?.department === task.department);
+  return canSeeAllHotelTasks() || (isSupervisor() && state.currentUser?.department === task.department);
 }
 
 function canWorkOnTask(task) {
-  return isManager() || canManageAssignments(task) || task.assignedToName === state.currentUser?.name;
+  return canSeeAllHotelTasks() || canManageAssignments(task) || task.assignedToName === state.currentUser?.name;
 }
 
 function saveDetailNote() {
@@ -2314,7 +2903,7 @@ function openTaskDetail(taskId) {
 
 function getDetailActions(task) {
   const actions = [];
-  const manager = isManager();
+  const manager = canSeeAllHotelTasks();
   const sameDepartment = state.currentUser.department === task.department;
   const canManage = canManageAssignments(task);
   const canWork = canWorkOnTask(task);
@@ -2859,7 +3448,7 @@ function drawPdfSummaryBox(doc, x, y, width, height, label, value, foot) {
 }
 
 function getVisibleTasks(tasks) {
-  if (isManager()) return tasks;
+  if (canSeeAllHotelTasks()) return tasks;
   return tasks.filter((task) => task.department === state.currentUser.department || task.openedByDepartment === state.currentUser.department);
 }
 
@@ -2900,6 +3489,9 @@ function normalizeTask(task) {
     assignedToName: task.assignedToName || '',
     assignedByName: task.assignedByName || '',
     assignedByDepartment: task.assignedByDepartment || '',
+    sourceType: task.sourceType || '',
+    sourceReference: task.sourceReference || '',
+    mediaAttachments: Array.isArray(task.mediaAttachments) ? task.mediaAttachments : [],
     createdAt: task.createdAt || new Date().toISOString(),
     updatedAt: task.updatedAt || task.createdAt || new Date().toISOString(),
     assignedAt: task.assignedAt || '',
@@ -3106,8 +3698,36 @@ function isManager() {
   return state.currentUser?.role === 'Manager';
 }
 
+function isMOD() {
+  return state.currentUser?.role === 'MOD';
+}
+
 function isSupervisor() {
   return state.currentUser?.role === 'Supervisor';
+}
+
+function canAccessMod() {
+  return isManager() || isMOD();
+}
+
+function canViewReports() {
+  return isManager() || isMOD();
+}
+
+function canSeeAllHotelTasks() {
+  return isManager() || isMOD();
+}
+
+function getDefaultLandingPage() {
+  if (isManager()) return 'dashboard';
+  if (isMOD()) return 'mod';
+  return 'home';
+}
+
+function getHomeNavPage() {
+  if (isManager()) return 'dashboard';
+  if (isMOD()) return 'mod';
+  return 'home';
 }
 
 function emptyStateHTML(title, description) {
